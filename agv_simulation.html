@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGV 调度系统监控中心 (RCS Demo)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 左侧地图区域 */
+        #map-container {
+            flex: 1;
+            position: relative;
+            background-color: #2d2d2d;
+            overflow: hidden;
+            border-right: 1px solid #444;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* 右侧控制面板 */
+        #sidebar {
+            width: 300px;
+            background-color: #252526;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.5);
+        }
+
+        h2 { margin-top: 0; font-size: 18px; color: #4caf50; }
+        h3 { font-size: 14px; color: #aaa; margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px;}
+
+        .stat-card {
+            background-color: #333;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .agv-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .status-idle { background-color: #ffc107; }
+        .status-moving { background-color: #4caf50; }
+        .status-error { background-color: #f44336; }
+
+        .log-panel {
+            flex: 1;
+            background-color: #111;
+            border: 1px solid #444;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            color: #ccc;
+        }
+        .log-entry { margin-bottom: 4px; }
+        .log-time { color: #888; margin-right: 5px; }
+
+        /* 新增控制面板样式 */
+        .control-panel {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        button {
+            flex: 1;
+            padding: 8px;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover { background-color: #1976d2; }
+        button.paused { background-color: #ff9800; }
+    </style>
+</head>
+<body>
+
+    <div id="map-container">
+        <canvas id="agvMap"></canvas>
+    </div>
+
+    <div id="sidebar">
+        <h2>AGV 调度监控系统</h2>
+        
+        <h3>控制面板</h3>
+        <div class="control-panel">
+            <button id="btn-toggle" onclick="toggleSimulation()">暂停演示</button>
+            <button onclick="location.reload()">重置系统</button>
+        </div>
+
+        <h3>车队状态</h3>
+        <div class="stat-card" id="fleet-status">
+            <!-- JS 动态填充 -->
+        </div>
+
+        <h3>系统日志</h3>
+        <div class="log-panel" id="system-logs">
+            <div class="log-entry"><span class="log-time">[10:00:01]</span> 系统初始化完成</div>
+            <div class="log-entry"><span class="log-time">[10:00:02]</span> 地图加载成功</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('agvMap');
+        const ctx = canvas.getContext('2d');
+        const fleetStatusDiv = document.getElementById('fleet-status');
+        const logsDiv = document.getElementById('system-logs');
+
+        // 配置
+        const GRID_SIZE = 40;
+        const AGV_SIZE = 24;
+        let width, height;
+        let isRunning = true;
+
+        // 模拟 AGV 数据
+        const agvs = [
+            { id: 'AGV-001', x: 2, y: 2, targetX: 10, targetY: 8, color: '#4caf50', status: 'moving', battery: 85 },
+            { id: 'AGV-002', x: 15, y: 5, targetX: 5, targetY: 5, color: '#2196f3', status: 'moving', battery: 62 },
+            { id: 'AGV-003', x: 8, y: 12, targetX: 8, targetY: 12, color: '#ffc107', status: 'idle', battery: 90 },
+            { id: 'AGV-004', x: 1, y: 10, targetX: 12, targetY: 2, color: '#9c27b0', status: 'moving', battery: 78 }
+        ];
+
+        // 模拟仓库货架 (障碍物)
+        const shelves = [
+            { x: 4, y: 2, w: 2, h: 8 },
+            { x: 8, y: 2, w: 2, h: 8 },
+            { x: 12, y: 2, w: 2, h: 8 }
+        ];
+
+        // 初始化画布大小
+        function resize() {
+            width = document.getElementById('map-container').clientWidth;
+            height = document.getElementById('map-container').clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // 添加日志
+        function addLog(msg) {
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
+            logsDiv.prepend(div);
+        }
+
+        // 切换运行状态
+        function toggleSimulation() {
+            isRunning = !isRunning;
+            const btn = document.getElementById('btn-toggle');
+            if (isRunning) {
+                btn.innerText = "暂停演示";
+                btn.classList.remove('paused');
+                addLog("演示继续");
+            } else {
+                btn.innerText = "继续演示";
+                btn.classList.add('paused');
+                addLog("演示已暂停");
+            }
+        }
+
+        // 绘制网格背景
+        function drawGrid() {
+            ctx.strokeStyle = '#3a3a3a';
+            ctx.lineWidth = 1;
+            
+            for (let x = 0; x <= width; x += GRID_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= height; y += GRID_SIZE) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+        }
+
+        // 绘制货架
+        function drawShelves() {
+            ctx.fillStyle = '#3e3e42';
+            ctx.strokeStyle = '#555';
+            shelves.forEach(shelf => {
+                ctx.fillRect(shelf.x * GRID_SIZE, shelf.y * GRID_SIZE, shelf.w * GRID_SIZE, shelf.h * GRID_SIZE);
+                ctx.strokeRect(shelf.x * GRID_SIZE, shelf.y * GRID_SIZE, shelf.w * GRID_SIZE, shelf.h * GRID_SIZE);
+            });
+        }
+
+        // 绘制 AGV
+        function drawAGV(agv) {
+            const pixelX = agv.x * GRID_SIZE + GRID_SIZE / 2;
+            const pixelY = agv.y * GRID_SIZE + GRID_SIZE / 2;
+
+            // 绘制目标路径线
+            if (agv.status === 'moving') {
+                ctx.beginPath();
+                ctx.strokeStyle = agv.color;
+                ctx.setLineDash([5, 5]);
+                ctx.moveTo(pixelX, pixelY);
+                ctx.lineTo(agv.targetX * GRID_SIZE + GRID_SIZE/2, agv.targetY * GRID_SIZE + GRID_SIZE/2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // 绘制车体
+            ctx.fillStyle = agv.color;
+            ctx.beginPath();
+            ctx.arc(pixelX, pixelY, AGV_SIZE / 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 绘制 ID
+            ctx.fillStyle = '#fff';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(agv.id.split('-')[1], pixelX, pixelY);
+        }
+
+        // 更新右侧面板
+        function updateSidebar() {
+            fleetStatusDiv.innerHTML = '';
+            agvs.forEach(agv => {
+                const statusClass = agv.status === 'moving' ? 'status-moving' : 'status-idle';
+                const html = `
+                    <div class="agv-item">
+                        <div>
+                            <span class="status-dot ${statusClass}"></span>
+                            <strong>${agv.id}</strong>
+                        </div>
+                        <div>电量: ${agv.battery}%</div>
+                    </div>
+                `;
+                fleetStatusDiv.innerHTML += html;
+            });
+        }
+
+        // 动画循环
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            drawGrid();
+            drawShelves();
+
+            agvs.forEach(agv => {
+                if (isRunning) {
+                // 简单的移动逻辑模拟
+                if (agv.status === 'moving') {
+                    const dx = agv.targetX - agv.x;
+                    const dy = agv.targetY - agv.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (dist < 0.1) {
+                        agv.status = 'idle';
+                        addLog(`${agv.id} 已到达目标点 (${agv.targetX}, ${agv.targetY})`);
+                        // 随机生成新目标
+                        setTimeout(() => {
+                            agv.targetX = Math.floor(Math.random() * (width/GRID_SIZE));
+                            agv.targetY = Math.floor(Math.random() * (height/GRID_SIZE));
+                            agv.status = 'moving';
+                            addLog(`${agv.id} 接收新任务 -> (${agv.targetX}, ${agv.targetY})`);
+                        }, 2000);
+                    } else {
+                        agv.x += dx * 0.02;
+                        agv.y += dy * 0.02;
+                    }
+                }
+                }
+                drawAGV(agv);
+            });
+
+            updateSidebar();
+            requestAnimationFrame(animate);
+        }
+
+        // 启动
+        animate();
+
+    </script>
+</body>
+</html>

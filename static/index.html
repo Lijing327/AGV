@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGV 调度系统 Demo</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #map-container {
+            flex: 1;
+            position: relative;
+            background: #16213e;
+            overflow: hidden;
+            border-right: 1px solid #0f3460;
+        }
+        canvas { display: block; }
+        #sidebar {
+            width: 320px;
+            background: #0f3460;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            box-shadow: -4px 0 12px rgba(0,0,0,0.4);
+        }
+        h2 { margin: 0 0 16px; font-size: 18px; color: #00d9ff; }
+        h3 { font-size: 13px; color: #7f8c8d; margin: 12px 0 8px; padding-bottom: 6px; border-bottom: 1px solid #2c3e50; }
+        .stat-card {
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+        .agv-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 4px 0;
+        }
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-idle { background: #f1c40f; }
+        .status-moving { background: #2ecc71; }
+        .status-waiting { background: #e67e22; }
+        .status-error { background: #e74c3c; }
+        .control-row { display: flex; gap: 8px; margin-bottom: 12px; }
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        button.primary { background: #3498db; color: #fff; }
+        button.primary:hover { background: #2980b9; }
+        button.success { background: #2ecc71; color: #fff; }
+        button.success:hover { background: #27ae60; }
+        button.danger { background: #e74c3c; color: #fff; }
+        button.danger:hover { background: #c0392b; }
+        .task-form { display: flex; gap: 8px; margin-bottom: 8px; }
+        .task-form input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #2c3e50;
+            border-radius: 4px;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 12px;
+        }
+        .log-panel {
+            flex: 1;
+            min-height: 120px;
+            background: #0d1117;
+            border: 1px solid #2c3e50;
+            border-radius: 6px;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            color: #8b949e;
+        }
+        .log-entry { margin-bottom: 4px; }
+        .log-time { color: #484f58; margin-right: 6px; }
+    </style>
+</head>
+<body>
+    <div id="map-container">
+        <canvas id="agvMap"></canvas>
+    </div>
+    <div id="sidebar">
+        <h2>AGV 调度系统 Demo</h2>
+        <h3>控制</h3>
+        <div class="control-row">
+            <button id="btn-start" class="success" onclick="simStart()">启动模拟</button>
+            <button id="btn-stop" class="danger" onclick="simStop()">停止模拟</button>
+        </div>
+        <h3>创建任务</h3>
+        <p style="font-size:11px;color:#95a5a6;margin:0 0 8px;">AGV 只有接到任务才会移动</p>
+        <div class="task-form">
+            <input id="fromNode" placeholder="起点 (如 R1)" value="R1">
+            <input id="toNode" placeholder="终点 (如 D1)" value="D1">
+        </div>
+        <button class="primary" style="width:100%;margin-bottom:6px;" onclick="createTask()">创建任务</button>
+        <button type="button" style="background:#555;font-size:11px;padding:6px;" onclick="fillDemoNodes()">填充示例 R1→D1</button>
+        <h3>车队状态</h3>
+        <div class="stat-card" id="fleet-status">加载中...</div>
+        <h3>任务列表</h3>
+        <div class="stat-card" id="task-list">-</div>
+        <h3>日志</h3>
+        <div class="log-panel" id="logs"></div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        const canvas = document.getElementById('agvMap');
+        const ctx = canvas.getContext('2d');
+        const GRID = 50;
+        const AGV_R = 14;
+        let mapData = { nodes: [], edges: [] };
+        let fleetData = { agvs: [] };
+        let pollTimer = null;
+
+        function log(msg) {
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
+            document.getElementById('logs').prepend(div);
+        }
+
+        async function fetchMap() {
+            const r = await fetch(API_BASE + '/map');
+            if (r.ok) mapData = await r.json();
+        }
+
+        async function fetchFleet() {
+            const r = await fetch(API_BASE + '/fleet');
+            if (r.ok) fleetData = await r.json();
+        }
+
+        async function simStart() {
+            const r = await fetch(API_BASE + '/sim/start', { method: 'POST' });
+            if (r.ok) { log('模拟已启动'); startPoll(); }
+        }
+
+        async function simStop() {
+            const r = await fetch(API_BASE + '/sim/stop', { method: 'POST' });
+            if (r.ok) { log('模拟已停止'); stopPoll(); }
+        }
+
+        function fillDemoNodes() {
+            document.getElementById('fromNode').value = 'R1';
+            document.getElementById('toNode').value = 'D1';
+            log('已填充示例节点，请点击「创建」');
+        }
+
+        async function createTask() {
+            const fromNode = document.getElementById('fromNode').value.trim();
+            const toNode = document.getElementById('toNode').value.trim();
+            if (!fromNode || !toNode) { log('请输入起点和终点'); return; }
+            const r = await fetch(API_BASE + '/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ from_node: fromNode, to_node: toNode })
+            });
+            const data = await r.json();
+            if (r.ok) log(`任务已创建: ${fromNode} -> ${toNode} (${data.assigned_agv_id || '待分配'})`);
+            else log('创建失败: ' + (data.error || data.detail));
+        }
+
+        function startPoll() {
+            if (pollTimer) return;
+            pollTimer = setInterval(poll, 1000);
+        }
+
+        function stopPoll() {
+            if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        }
+
+        async function poll() {
+            await fetchMap();
+            await fetchFleet();
+            const r = await fetch(API_BASE + '/tasks');
+            if (r.ok) {
+                const data = await r.json();
+                const list = document.getElementById('task-list');
+                list.innerHTML = data.tasks.length
+                    ? data.tasks.map(t => `${t.id}: ${t.from_node}→${t.to_node} [${t.status}]`).join('<br>')
+                    : '无任务';
+            }
+            render();
+        }
+
+        function render() {
+            const w = document.getElementById('map-container').clientWidth;
+            const h = document.getElementById('map-container').clientHeight;
+            canvas.width = w;
+            canvas.height = h;
+
+            ctx.clearRect(0, 0, w, h);
+
+            const nodes = mapData.nodes || [];
+            const nodeMap = {};
+            nodes.forEach(n => { nodeMap[n.id] = n; });
+
+            const scale = Math.min(
+                (w - 80) / (Math.max(...nodes.map(n => n.x), 1) * GRID),
+                (h - 80) / (Math.max(...nodes.map(n => n.y), 1) * GRID)
+            ) || 1;
+            const ox = 40;
+            const oy = 40;
+
+            function toX(x) { return ox + x * GRID * scale; }
+            function toY(y) { return oy + y * GRID * scale; }
+
+            // 边
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            (mapData.edges || []).forEach(e => {
+                const fromN = nodeMap[e.from];
+                const toN = nodeMap[e.to];
+                if (!fromN || !toN) return;
+                ctx.beginPath();
+                ctx.moveTo(toX(fromN.x), toY(fromN.y));
+                ctx.lineTo(toX(toN.x), toY(toN.y));
+                ctx.stroke();
+            });
+
+            // 节点
+            ctx.fillStyle = '#34495e';
+            nodes.forEach(n => {
+                ctx.beginPath();
+                ctx.arc(toX(n.x), toY(n.y), 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#95a5a6';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(n.id, toX(n.x), toY(n.y) + 18);
+                ctx.fillStyle = '#34495e';
+            });
+
+            // AGV
+            (fleetData.agvs || []).forEach(agv => {
+                const n = nodeMap[agv.current_node];
+                if (!n) return;
+                const px = toX(n.x);
+                const py = toY(n.y);
+                ctx.fillStyle = agv.color || '#2ecc71';
+                ctx.beginPath();
+                ctx.arc(px, py, AGV_R, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(agv.id.replace('AGV-', ''), px, py);
+            });
+
+            // 车队状态
+            const fleetDiv = document.getElementById('fleet-status');
+            fleetDiv.innerHTML = (fleetData.agvs || []).map(a => {
+                const cls = 'status-' + (a.status || 'idle');
+                return `<div class="agv-item"><span><span class="status-dot ${cls}"></span><strong>${a.id}</strong></span><span>${a.current_node}</span></div>`;
+            }).join('') || '无 AGV';
+        }
+
+        (async function init() {
+            await fetchMap();
+            await fetchFleet();
+            const r = await fetch(API_BASE + '/tasks');
+            if (r.ok) {
+                const data = await r.json();
+                document.getElementById('task-list').innerHTML =
+                    data.tasks.length ? data.tasks.map(t => `${t.id}: ${t.from_node}→${t.to_node}`).join('<br>') : '无任务';
+            }
+            render();
+            log('地图与车队已加载');
+        })();
+
+        window.addEventListener('resize', render);
+    </script>
+</body>
+</html>
