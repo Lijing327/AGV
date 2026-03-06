@@ -1,0 +1,967 @@
+{
+  "meta": {
+    "header": {
+      "mapName": "demo_advanced",
+      "resolution": 0.02,
+      "version": "1.0.0"
+    },
+    "advancedPointList": [
+      {
+        "id": "R1",
+        "type": "ReceivePoint",
+        "x": 0.0,
+        "y": 0.0
+      },
+      {
+        "id": "R2",
+        "type": "ReceivePoint",
+        "x": 1.0,
+        "y": 0.0
+      },
+      {
+        "id": "R3",
+        "type": "ReceivePoint",
+        "x": 2.0,
+        "y": 0.0
+      },
+      {
+        "id": "R4",
+        "type": "ReceivePoint",
+        "x": 3.0,
+        "y": 0.0
+      },
+      {
+        "id": "R5",
+        "type": "ReceivePoint",
+        "x": 4.0,
+        "y": 0.0
+      },
+      {
+        "id": "C1",
+        "type": "NormalPoint",
+        "x": 0.0,
+        "y": 1.0
+      },
+      {
+        "id": "C2",
+        "type": "NormalPoint",
+        "x": 1.0,
+        "y": 1.0
+      },
+      {
+        "id": "C3",
+        "type": "NormalPoint",
+        "x": 2.0,
+        "y": 1.0
+      },
+      {
+        "id": "C4",
+        "type": "NormalPoint",
+        "x": 3.0,
+        "y": 1.0
+      },
+      {
+        "id": "C5",
+        "type": "NormalPoint",
+        "x": 4.0,
+        "y": 1.0
+      },
+      {
+        "id": "A1",
+        "type": "AssemblePoint",
+        "x": 0.0,
+        "y": 2.0
+      },
+      {
+        "id": "A2",
+        "type": "AssemblePoint",
+        "x": 1.0,
+        "y": 2.0
+      },
+      {
+        "id": "A3",
+        "type": "AssemblePoint",
+        "x": 2.0,
+        "y": 2.0
+      },
+      {
+        "id": "A4",
+        "type": "AssemblePoint",
+        "x": 3.0,
+        "y": 2.0
+      },
+      {
+        "id": "A5",
+        "type": "AssemblePoint",
+        "x": 4.0,
+        "y": 2.0
+      },
+      {
+        "id": "S1",
+        "type": "StoragePoint",
+        "x": 0.0,
+        "y": 3.0
+      },
+      {
+        "id": "S2",
+        "type": "StoragePoint",
+        "x": 1.0,
+        "y": 3.0
+      },
+      {
+        "id": "S3",
+        "type": "StoragePoint",
+        "x": 2.0,
+        "y": 3.0
+      },
+      {
+        "id": "S4",
+        "type": "StoragePoint",
+        "x": 3.0,
+        "y": 3.0
+      },
+      {
+        "id": "D1",
+        "type": "DispatchPoint",
+        "x": 4.0,
+        "y": 3.0
+      }
+    ],
+    "advancedCurveList": [
+      {
+        "id": "path_R1_R2",
+        "source": "R1",
+        "target": "R2",
+        "length": 1.0
+      },
+      {
+        "id": "path_R2_R3",
+        "source": "R2",
+        "target": "R3",
+        "length": 1.0
+      },
+      {
+        "id": "path_R3_R4",
+        "source": "R3",
+        "target": "R4",
+        "length": 1.0
+      },
+      {
+        "id": "path_R4_R5",
+        "source": "R4",
+        "target": "R5",
+        "length": 1.0
+      },
+      {
+        "id": "path_R1_C1",
+        "source": "R1",
+        "target": "C1",
+        "length": 1.0
+      },
+      {
+        "id": "path_R2_C2",
+        "source": "R2",
+        "target": "C2",
+        "length": 1.0
+      },
+      {
+        "id": "path_R3_C3",
+        "source": "R3",
+        "target": "C3",
+        "length": 1.0
+      },
+      {
+        "id": "path_R4_C4",
+        "source": "R4",
+        "target": "C4",
+        "length": 1.0
+      },
+      {
+        "id": "path_R5_C5",
+        "source": "R5",
+        "target": "C5",
+        "length": 1.0
+      },
+      {
+        "id": "path_C1_C2",
+        "source": "C1",
+        "target": "C2",
+        "length": 1.0
+      },
+      {
+        "id": "path_C2_C3",
+        "source": "C2",
+        "target": "C3",
+        "length": 1.0
+      },
+      {
+        "id": "path_C3_C4",
+        "source": "C3",
+        "target": "C4",
+        "length": 1.0
+      },
+      {
+        "id": "path_C4_C5",
+        "source": "C4",
+        "target": "C5",
+        "length": 1.0
+      },
+      {
+        "id": "path_C1_A1",
+        "source": "C1",
+        "target": "A1",
+        "length": 1.0
+      },
+      {
+        "id": "path_C2_A2",
+        "source": "C2",
+        "target": "A2",
+        "length": 1.0
+      },
+      {
+        "id": "path_C3_A3",
+        "source": "C3",
+        "target": "A3",
+        "length": 1.0
+      },
+      {
+        "id": "path_C4_A4",
+        "source": "C4",
+        "target": "A4",
+        "length": 1.0
+      },
+      {
+        "id": "path_C5_A5",
+        "source": "C5",
+        "target": "A5",
+        "length": 1.0
+      },
+      {
+        "id": "path_A1_A2",
+        "source": "A1",
+        "target": "A2",
+        "length": 1.0
+      },
+      {
+        "id": "path_A2_A3",
+        "source": "A2",
+        "target": "A3",
+        "length": 1.0
+      },
+      {
+        "id": "path_A3_A4",
+        "source": "A3",
+        "target": "A4",
+        "length": 1.0
+      },
+      {
+        "id": "path_A4_A5",
+        "source": "A4",
+        "target": "A5",
+        "length": 1.0
+      },
+      {
+        "id": "path_A1_S1",
+        "source": "A1",
+        "target": "S1",
+        "length": 1.0
+      },
+      {
+        "id": "path_A2_S2",
+        "source": "A2",
+        "target": "S2",
+        "length": 1.0
+      },
+      {
+        "id": "path_A3_S3",
+        "source": "A3",
+        "target": "S3",
+        "length": 1.0
+      },
+      {
+        "id": "path_A4_S4",
+        "source": "A4",
+        "target": "S4",
+        "length": 1.0
+      },
+      {
+        "id": "path_A5_D1",
+        "source": "A5",
+        "target": "D1",
+        "length": 1.0
+      },
+      {
+        "id": "path_S1_S2",
+        "source": "S1",
+        "target": "S2",
+        "length": 1.0
+      },
+      {
+        "id": "path_S2_S3",
+        "source": "S2",
+        "target": "S3",
+        "length": 1.0
+      },
+      {
+        "id": "path_S3_S4",
+        "source": "S3",
+        "target": "S4",
+        "length": 1.0
+      },
+      {
+        "id": "path_S4_D1",
+        "source": "S4",
+        "target": "D1",
+        "length": 1.0,
+        "bezier": {
+          "x1": 3.5,
+          "y1": 3.0,
+          "x2": 4.0,
+          "y2": 3.0
+        }
+      }
+    ],
+    "adjacency": {
+      "C3": [
+        {
+          "to": "R3",
+          "edgeId": "path_R3_C3",
+          "cost": 1.0
+        },
+        {
+          "to": "C2",
+          "edgeId": "path_C2_C3",
+          "cost": 1.0
+        },
+        {
+          "to": "C4",
+          "edgeId": "path_C3_C4",
+          "cost": 1.0
+        },
+        {
+          "to": "A3",
+          "edgeId": "path_C3_A3",
+          "cost": 1.0
+        }
+      ],
+      "D1": [
+        {
+          "to": "A5",
+          "edgeId": "path_A5_D1",
+          "cost": 1.0
+        },
+        {
+          "to": "S4",
+          "edgeId": "path_S4_D1",
+          "cost": 1.0
+        }
+      ],
+      "S2": [
+        {
+          "to": "A2",
+          "edgeId": "path_A2_S2",
+          "cost": 1.0
+        },
+        {
+          "to": "S1",
+          "edgeId": "path_S1_S2",
+          "cost": 1.0
+        },
+        {
+          "to": "S3",
+          "edgeId": "path_S2_S3",
+          "cost": 1.0
+        }
+      ],
+      "A2": [
+        {
+          "to": "C2",
+          "edgeId": "path_C2_A2",
+          "cost": 1.0
+        },
+        {
+          "to": "A1",
+          "edgeId": "path_A1_A2",
+          "cost": 1.0
+        },
+        {
+          "to": "A3",
+          "edgeId": "path_A2_A3",
+          "cost": 1.0
+        },
+        {
+          "to": "S2",
+          "edgeId": "path_A2_S2",
+          "cost": 1.0
+        }
+      ],
+      "S4": [
+        {
+          "to": "A4",
+          "edgeId": "path_A4_S4",
+          "cost": 1.0
+        },
+        {
+          "to": "S3",
+          "edgeId": "path_S3_S4",
+          "cost": 1.0
+        },
+        {
+          "to": "D1",
+          "edgeId": "path_S4_D1",
+          "cost": 1.0
+        }
+      ],
+      "C5": [
+        {
+          "to": "R5",
+          "edgeId": "path_R5_C5",
+          "cost": 1.0
+        },
+        {
+          "to": "C4",
+          "edgeId": "path_C4_C5",
+          "cost": 1.0
+        },
+        {
+          "to": "A5",
+          "edgeId": "path_C5_A5",
+          "cost": 1.0
+        }
+      ],
+      "S1": [
+        {
+          "to": "A1",
+          "edgeId": "path_A1_S1",
+          "cost": 1.0
+        },
+        {
+          "to": "S2",
+          "edgeId": "path_S1_S2",
+          "cost": 1.0
+        }
+      ],
+      "A4": [
+        {
+          "to": "C4",
+          "edgeId": "path_C4_A4",
+          "cost": 1.0
+        },
+        {
+          "to": "A3",
+          "edgeId": "path_A3_A4",
+          "cost": 1.0
+        },
+        {
+          "to": "A5",
+          "edgeId": "path_A4_A5",
+          "cost": 1.0
+        },
+        {
+          "to": "S4",
+          "edgeId": "path_A4_S4",
+          "cost": 1.0
+        }
+      ],
+      "R1": [
+        {
+          "to": "R2",
+          "edgeId": "path_R1_R2",
+          "cost": 1.0
+        },
+        {
+          "to": "C1",
+          "edgeId": "path_R1_C1",
+          "cost": 1.0
+        }
+      ],
+      "S3": [
+        {
+          "to": "A3",
+          "edgeId": "path_A3_S3",
+          "cost": 1.0
+        },
+        {
+          "to": "S2",
+          "edgeId": "path_S2_S3",
+          "cost": 1.0
+        },
+        {
+          "to": "S4",
+          "edgeId": "path_S3_S4",
+          "cost": 1.0
+        }
+      ],
+      "C4": [
+        {
+          "to": "R4",
+          "edgeId": "path_R4_C4",
+          "cost": 1.0
+        },
+        {
+          "to": "C3",
+          "edgeId": "path_C3_C4",
+          "cost": 1.0
+        },
+        {
+          "to": "C5",
+          "edgeId": "path_C4_C5",
+          "cost": 1.0
+        },
+        {
+          "to": "A4",
+          "edgeId": "path_C4_A4",
+          "cost": 1.0
+        }
+      ],
+      "A1": [
+        {
+          "to": "C1",
+          "edgeId": "path_C1_A1",
+          "cost": 1.0
+        },
+        {
+          "to": "A2",
+          "edgeId": "path_A1_A2",
+          "cost": 1.0
+        },
+        {
+          "to": "S1",
+          "edgeId": "path_A1_S1",
+          "cost": 1.0
+        }
+      ],
+      "R2": [
+        {
+          "to": "R1",
+          "edgeId": "path_R1_R2",
+          "cost": 1.0
+        },
+        {
+          "to": "R3",
+          "edgeId": "path_R2_R3",
+          "cost": 1.0
+        },
+        {
+          "to": "C2",
+          "edgeId": "path_R2_C2",
+          "cost": 1.0
+        }
+      ],
+      "R5": [
+        {
+          "to": "R4",
+          "edgeId": "path_R4_R5",
+          "cost": 1.0
+        },
+        {
+          "to": "C5",
+          "edgeId": "path_R5_C5",
+          "cost": 1.0
+        }
+      ],
+      "A3": [
+        {
+          "to": "C3",
+          "edgeId": "path_C3_A3",
+          "cost": 1.0
+        },
+        {
+          "to": "A2",
+          "edgeId": "path_A2_A3",
+          "cost": 1.0
+        },
+        {
+          "to": "A4",
+          "edgeId": "path_A3_A4",
+          "cost": 1.0
+        },
+        {
+          "to": "S3",
+          "edgeId": "path_A3_S3",
+          "cost": 1.0
+        }
+      ],
+      "R3": [
+        {
+          "to": "R2",
+          "edgeId": "path_R2_R3",
+          "cost": 1.0
+        },
+        {
+          "to": "R4",
+          "edgeId": "path_R3_R4",
+          "cost": 1.0
+        },
+        {
+          "to": "C3",
+          "edgeId": "path_R3_C3",
+          "cost": 1.0
+        }
+      ],
+      "C2": [
+        {
+          "to": "R2",
+          "edgeId": "path_R2_C2",
+          "cost": 1.0
+        },
+        {
+          "to": "C1",
+          "edgeId": "path_C1_C2",
+          "cost": 1.0
+        },
+        {
+          "to": "C3",
+          "edgeId": "path_C2_C3",
+          "cost": 1.0
+        },
+        {
+          "to": "A2",
+          "edgeId": "path_C2_A2",
+          "cost": 1.0
+        }
+      ],
+      "A5": [
+        {
+          "to": "C5",
+          "edgeId": "path_C5_A5",
+          "cost": 1.0
+        },
+        {
+          "to": "A4",
+          "edgeId": "path_A4_A5",
+          "cost": 1.0
+        },
+        {
+          "to": "D1",
+          "edgeId": "path_A5_D1",
+          "cost": 1.0
+        }
+      ],
+      "C1": [
+        {
+          "to": "R1",
+          "edgeId": "path_R1_C1",
+          "cost": 1.0
+        },
+        {
+          "to": "C2",
+          "edgeId": "path_C1_C2",
+          "cost": 1.0
+        },
+        {
+          "to": "A1",
+          "edgeId": "path_C1_A1",
+          "cost": 1.0
+        }
+      ],
+      "R4": [
+        {
+          "to": "R3",
+          "edgeId": "path_R3_R4",
+          "cost": 1.0
+        },
+        {
+          "to": "R5",
+          "edgeId": "path_R4_R5",
+          "cost": 1.0
+        },
+        {
+          "to": "C4",
+          "edgeId": "path_R4_C4",
+          "cost": 1.0
+        }
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "R1",
+      "x": 0.0,
+      "y": 0.0
+    },
+    {
+      "id": "R2",
+      "x": 1.0,
+      "y": 0.0
+    },
+    {
+      "id": "R3",
+      "x": 2.0,
+      "y": 0.0
+    },
+    {
+      "id": "R4",
+      "x": 3.0,
+      "y": 0.0
+    },
+    {
+      "id": "R5",
+      "x": 4.0,
+      "y": 0.0
+    },
+    {
+      "id": "C1",
+      "x": 0.0,
+      "y": 1.0
+    },
+    {
+      "id": "C2",
+      "x": 1.0,
+      "y": 1.0
+    },
+    {
+      "id": "C3",
+      "x": 2.0,
+      "y": 1.0
+    },
+    {
+      "id": "C4",
+      "x": 3.0,
+      "y": 1.0
+    },
+    {
+      "id": "C5",
+      "x": 4.0,
+      "y": 1.0
+    },
+    {
+      "id": "A1",
+      "x": 0.0,
+      "y": 2.0
+    },
+    {
+      "id": "A2",
+      "x": 1.0,
+      "y": 2.0
+    },
+    {
+      "id": "A3",
+      "x": 2.0,
+      "y": 2.0
+    },
+    {
+      "id": "A4",
+      "x": 3.0,
+      "y": 2.0
+    },
+    {
+      "id": "A5",
+      "x": 4.0,
+      "y": 2.0
+    },
+    {
+      "id": "S1",
+      "x": 0.0,
+      "y": 3.0
+    },
+    {
+      "id": "S2",
+      "x": 1.0,
+      "y": 3.0
+    },
+    {
+      "id": "S3",
+      "x": 2.0,
+      "y": 3.0
+    },
+    {
+      "id": "S4",
+      "x": 3.0,
+      "y": 3.0
+    },
+    {
+      "id": "D1",
+      "x": 4.0,
+      "y": 3.0
+    }
+  ],
+  "edges": [
+    {
+      "from": "R1",
+      "to": "R2",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "R2",
+      "to": "R3",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "R3",
+      "to": "R4",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "R4",
+      "to": "R5",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "R1",
+      "to": "C1",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "R2",
+      "to": "C2",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "R3",
+      "to": "C3",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "R4",
+      "to": "C4",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "R5",
+      "to": "C5",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "C1",
+      "to": "C2",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "C2",
+      "to": "C3",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "C3",
+      "to": "C4",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "C4",
+      "to": "C5",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "C1",
+      "to": "A1",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "C2",
+      "to": "A2",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "C3",
+      "to": "A3",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "C4",
+      "to": "A4",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "C5",
+      "to": "A5",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "A1",
+      "to": "A2",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "A2",
+      "to": "A3",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "A3",
+      "to": "A4",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "A4",
+      "to": "A5",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "A1",
+      "to": "S1",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "A2",
+      "to": "S2",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "A3",
+      "to": "S3",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "A4",
+      "to": "S4",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "A5",
+      "to": "D1",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "S1",
+      "to": "S2",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "S2",
+      "to": "S3",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "S3",
+      "to": "S4",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "S4",
+      "to": "D1",
+      "bidirectional": true,
+      "capacity": 1
+    }
+  ]
+}

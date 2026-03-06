@@ -1,0 +1,2006 @@
+{
+  "meta": {
+    "header": {
+      "mapName": "default_1",
+      "resolution": 0.02,
+      "version": "1.0.6",
+      "minPos": {
+        "x": -77.405,
+        "y": -81.661
+      },
+      "maxPos": {
+        "x": 90,
+        "y": 119.179
+      }
+    },
+    "advancedPointList": [
+      {
+        "className": "LocationMark",
+        "instanceName": "LM1",
+        "pos": {
+          "x": 25.812,
+          "y": 77.878
+        },
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ],
+        "ignoreDir": true
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM2",
+        "pos": {
+          "x": 30.792,
+          "y": 78.037
+        },
+        "dir": -1.5707963267948966,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM3",
+        "pos": {
+          "x": 33.142,
+          "y": 3.175
+        },
+        "dir": -1.53588974175501,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM4",
+        "pos": {
+          "x": -0.753,
+          "y": 0.263
+        },
+        "dir": 0.08726646259971647,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM5",
+        "pos": {
+          "x": -27.524,
+          "y": -0.545
+        },
+        "dir": -3.141592653589793,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM6",
+        "pos": {
+          "x": -38.019,
+          "y": 0.162
+        },
+        "dir": 1.53588974175501,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM7",
+        "pos": {
+          "x": -40.914,
+          "y": 80.467
+        },
+        "dir": -3.141592653589793,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM8",
+        "pos": {
+          "x": -63.505,
+          "y": 80.395
+        },
+        "dir": -1.5707963267948966,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM9",
+        "pos": {
+          "x": -63.37,
+          "y": 1.277
+        },
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ],
+        "ignoreDir": true
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM10",
+        "pos": {
+          "x": 33.906,
+          "y": 78.311
+        },
+        "dir": -3.106686068549898,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "ActionPoint",
+        "instanceName": "AP11",
+        "pos": {
+          "x": 36.657,
+          "y": 78.393
+        },
+        "dir": -3.106686068549898,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "ActionPoint",
+        "instanceName": "AP12",
+        "pos": {
+          "x": 30.95,
+          "y": 73.743
+        },
+        "dir": -1.5707963267948966,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM13",
+        "pos": {
+          "x": 27.574,
+          "y": 81.346
+        },
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM14",
+        "pos": {
+          "x": 30.715,
+          "y": 81.346
+        },
+        "dir": 1.5707963267948966,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM15",
+        "pos": {
+          "x": 30.95,
+          "y": 88.991
+        },
+        "dir": -3.141592653589793,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM16",
+        "pos": {
+          "x": 90,
+          "y": 88.371
+        },
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ],
+        "ignoreDir": true
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM17",
+        "pos": {
+          "x": 9.138,
+          "y": 88.857
+        },
+        "dir": -1.5707963267948966,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM18",
+        "pos": {
+          "x": 11.541,
+          "y": 1.39
+        },
+        "dir": -1.5707963267948966,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM19",
+        "pos": {
+          "x": 34.227,
+          "y": 80.27
+        },
+        "dir": 0.0872664625997125,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      }
+    ],
+    "advancedCurveList": [
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM3-LM2",
+        "startPos": {
+          "instanceName": "LM3",
+          "pos": {
+            "x": 33.142,
+            "y": 3.175
+          }
+        },
+        "endPos": {
+          "instanceName": "LM2",
+          "pos": {
+            "x": 30.792,
+            "y": 78.037
+          }
+        },
+        "controlPos1": {
+          "x": 32.359,
+          "y": 28.129
+        },
+        "controlPos2": {
+          "x": 31.575,
+          "y": 53.083
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM2-LM3",
+        "startPos": {
+          "instanceName": "LM2",
+          "pos": {
+            "x": 30.792,
+            "y": 78.037
+          }
+        },
+        "endPos": {
+          "instanceName": "LM3",
+          "pos": {
+            "x": 33.142,
+            "y": 3.175
+          }
+        },
+        "controlPos1": {
+          "x": 31.575,
+          "y": 53.083
+        },
+        "controlPos2": {
+          "x": 32.359,
+          "y": 28.129
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM5-LM4",
+        "startPos": {
+          "instanceName": "LM5",
+          "pos": {
+            "x": -27.524,
+            "y": -0.545
+          }
+        },
+        "endPos": {
+          "instanceName": "LM4",
+          "pos": {
+            "x": -0.753,
+            "y": 0.263
+          }
+        },
+        "controlPos1": {
+          "x": -18.601,
+          "y": -0.276
+        },
+        "controlPos2": {
+          "x": -9.677,
+          "y": -0.007
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM4-LM5",
+        "startPos": {
+          "instanceName": "LM4",
+          "pos": {
+            "x": -0.753,
+            "y": 0.263
+          }
+        },
+        "endPos": {
+          "instanceName": "LM5",
+          "pos": {
+            "x": -27.524,
+            "y": -0.545
+          }
+        },
+        "controlPos1": {
+          "x": -9.677,
+          "y": -0.007
+        },
+        "controlPos2": {
+          "x": -18.601,
+          "y": -0.276
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM6-LM5",
+        "startPos": {
+          "instanceName": "LM6",
+          "pos": {
+            "x": -38.019,
+            "y": 0.162
+          }
+        },
+        "endPos": {
+          "instanceName": "LM5",
+          "pos": {
+            "x": -27.524,
+            "y": -0.545
+          }
+        },
+        "controlPos1": {
+          "x": -34.521,
+          "y": -0.074
+        },
+        "controlPos2": {
+          "x": -31.023,
+          "y": -0.309
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM5-LM6",
+        "startPos": {
+          "instanceName": "LM5",
+          "pos": {
+            "x": -27.524,
+            "y": -0.545
+          }
+        },
+        "endPos": {
+          "instanceName": "LM6",
+          "pos": {
+            "x": -38.019,
+            "y": 0.162
+          }
+        },
+        "controlPos1": {
+          "x": -31.023,
+          "y": -0.309
+        },
+        "controlPos2": {
+          "x": -34.521,
+          "y": -0.074
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM9-LM6",
+        "startPos": {
+          "instanceName": "LM9",
+          "pos": {
+            "x": -63.37,
+            "y": 1.277
+          }
+        },
+        "endPos": {
+          "instanceName": "LM6",
+          "pos": {
+            "x": -38.019,
+            "y": 0.162
+          }
+        },
+        "controlPos1": {
+          "x": -54.881,
+          "y": -0.054
+        },
+        "controlPos2": {
+          "x": -46.388,
+          "y": -0.161
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM6-LM9",
+        "startPos": {
+          "instanceName": "LM6",
+          "pos": {
+            "x": -38.019,
+            "y": 0.162
+          }
+        },
+        "endPos": {
+          "instanceName": "LM9",
+          "pos": {
+            "x": -63.37,
+            "y": 1.277
+          }
+        },
+        "controlPos1": {
+          "x": -46.388,
+          "y": -0.161
+        },
+        "controlPos2": {
+          "x": -54.881,
+          "y": -0.054
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM6-LM7",
+        "startPos": {
+          "instanceName": "LM6",
+          "pos": {
+            "x": -38.019,
+            "y": 0.162
+          }
+        },
+        "endPos": {
+          "instanceName": "LM7",
+          "pos": {
+            "x": -40.914,
+            "y": 80.467
+          }
+        },
+        "controlPos1": {
+          "x": -38.984,
+          "y": 26.93
+        },
+        "controlPos2": {
+          "x": -39.949,
+          "y": 53.699
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM7-LM6",
+        "startPos": {
+          "instanceName": "LM7",
+          "pos": {
+            "x": -40.914,
+            "y": 80.467
+          }
+        },
+        "endPos": {
+          "instanceName": "LM6",
+          "pos": {
+            "x": -38.019,
+            "y": 0.162
+          }
+        },
+        "controlPos1": {
+          "x": -39.949,
+          "y": 53.699
+        },
+        "controlPos2": {
+          "x": -38.984,
+          "y": 26.93
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM7-LM8",
+        "startPos": {
+          "instanceName": "LM7",
+          "pos": {
+            "x": -40.914,
+            "y": 80.467
+          }
+        },
+        "endPos": {
+          "instanceName": "LM8",
+          "pos": {
+            "x": -63.505,
+            "y": 80.395
+          }
+        },
+        "controlPos1": {
+          "x": -48.444,
+          "y": 80.443
+        },
+        "controlPos2": {
+          "x": -55.975,
+          "y": 80.419
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM8-LM7",
+        "startPos": {
+          "instanceName": "LM8",
+          "pos": {
+            "x": -63.505,
+            "y": 80.395
+          }
+        },
+        "endPos": {
+          "instanceName": "LM7",
+          "pos": {
+            "x": -40.914,
+            "y": 80.467
+          }
+        },
+        "controlPos1": {
+          "x": -55.975,
+          "y": 80.419
+        },
+        "controlPos2": {
+          "x": -48.444,
+          "y": 80.443
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM8-LM9",
+        "startPos": {
+          "instanceName": "LM8",
+          "pos": {
+            "x": -63.505,
+            "y": 80.395
+          }
+        },
+        "endPos": {
+          "instanceName": "LM9",
+          "pos": {
+            "x": -63.37,
+            "y": 1.277
+          }
+        },
+        "controlPos1": {
+          "x": -63.46,
+          "y": 54.022
+        },
+        "controlPos2": {
+          "x": -63.415,
+          "y": 27.65
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM9-LM8",
+        "startPos": {
+          "instanceName": "LM9",
+          "pos": {
+            "x": -63.37,
+            "y": 1.277
+          }
+        },
+        "endPos": {
+          "instanceName": "LM8",
+          "pos": {
+            "x": -63.505,
+            "y": 80.395
+          }
+        },
+        "controlPos1": {
+          "x": -63.415,
+          "y": 27.65
+        },
+        "controlPos2": {
+          "x": -63.46,
+          "y": 54.022
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM2-LM10",
+        "startPos": {
+          "instanceName": "LM2",
+          "pos": {
+            "x": 30.792,
+            "y": 78.037
+          }
+        },
+        "endPos": {
+          "instanceName": "LM10",
+          "pos": {
+            "x": 33.906,
+            "y": 78.311
+          }
+        },
+        "controlPos1": {
+          "x": 31.83,
+          "y": 78.128
+        },
+        "controlPos2": {
+          "x": 32.868,
+          "y": 78.22
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM10-LM2",
+        "startPos": {
+          "instanceName": "LM10",
+          "pos": {
+            "x": 33.906,
+            "y": 78.311
+          }
+        },
+        "endPos": {
+          "instanceName": "LM2",
+          "pos": {
+            "x": 30.792,
+            "y": 78.037
+          }
+        },
+        "controlPos1": {
+          "x": 32.868,
+          "y": 78.22
+        },
+        "controlPos2": {
+          "x": 31.83,
+          "y": 78.128
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM10-AP11",
+        "startPos": {
+          "instanceName": "LM10",
+          "pos": {
+            "x": 33.906,
+            "y": 78.311
+          }
+        },
+        "endPos": {
+          "instanceName": "AP11",
+          "pos": {
+            "x": 36.657,
+            "y": 78.393
+          }
+        },
+        "controlPos1": {
+          "x": 34.823,
+          "y": 78.339
+        },
+        "controlPos2": {
+          "x": 35.74,
+          "y": 78.366
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "AP11-LM10",
+        "startPos": {
+          "instanceName": "AP11",
+          "pos": {
+            "x": 36.657,
+            "y": 78.393
+          }
+        },
+        "endPos": {
+          "instanceName": "LM10",
+          "pos": {
+            "x": 33.906,
+            "y": 78.311
+          }
+        },
+        "controlPos1": {
+          "x": 35.74,
+          "y": 78.366
+        },
+        "controlPos2": {
+          "x": 34.823,
+          "y": 78.339
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "AP12-LM2",
+        "startPos": {
+          "instanceName": "AP12",
+          "pos": {
+            "x": 30.95,
+            "y": 73.743
+          }
+        },
+        "endPos": {
+          "instanceName": "LM2",
+          "pos": {
+            "x": 30.792,
+            "y": 78.037
+          }
+        },
+        "controlPos1": {
+          "x": 30.897,
+          "y": 75.174
+        },
+        "controlPos2": {
+          "x": 30.845,
+          "y": 76.606
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MQ==",
+            "int32Value": 1
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM2-AP12",
+        "startPos": {
+          "instanceName": "LM2",
+          "pos": {
+            "x": 30.792,
+            "y": 78.037
+          }
+        },
+        "endPos": {
+          "instanceName": "AP12",
+          "pos": {
+            "x": 30.95,
+            "y": 73.743
+          }
+        },
+        "controlPos1": {
+          "x": 30.845,
+          "y": 76.606
+        },
+        "controlPos2": {
+          "x": 30.897,
+          "y": 75.174
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM2-AP11",
+        "startPos": {
+          "instanceName": "LM2",
+          "pos": {
+            "x": 30.792,
+            "y": 78.037
+          }
+        },
+        "endPos": {
+          "instanceName": "AP11",
+          "pos": {
+            "x": 36.657,
+            "y": 78.393
+          }
+        },
+        "controlPos1": {
+          "x": 32.747,
+          "y": 78.156
+        },
+        "controlPos2": {
+          "x": 34.702,
+          "y": 78.274
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MQ==",
+            "int32Value": 1
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "AP11-LM2",
+        "startPos": {
+          "instanceName": "AP11",
+          "pos": {
+            "x": 36.657,
+            "y": 78.393
+          }
+        },
+        "endPos": {
+          "instanceName": "LM2",
+          "pos": {
+            "x": 30.792,
+            "y": 78.037
+          }
+        },
+        "controlPos1": {
+          "x": 34.702,
+          "y": 78.274
+        },
+        "controlPos2": {
+          "x": 32.747,
+          "y": 78.156
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM14-LM15",
+        "startPos": {
+          "instanceName": "LM14",
+          "pos": {
+            "x": 30.715,
+            "y": 81.346
+          }
+        },
+        "endPos": {
+          "instanceName": "LM15",
+          "pos": {
+            "x": 30.95,
+            "y": 88.991
+          }
+        },
+        "controlPos1": {
+          "x": 30.794,
+          "y": 83.894
+        },
+        "controlPos2": {
+          "x": 30.872,
+          "y": 86.442
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM15-LM14",
+        "startPos": {
+          "instanceName": "LM15",
+          "pos": {
+            "x": 30.95,
+            "y": 88.991
+          }
+        },
+        "endPos": {
+          "instanceName": "LM14",
+          "pos": {
+            "x": 30.715,
+            "y": 81.346
+          }
+        },
+        "controlPos1": {
+          "x": 30.872,
+          "y": 86.442
+        },
+        "controlPos2": {
+          "x": 30.794,
+          "y": 83.894
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM15-LM17",
+        "startPos": {
+          "instanceName": "LM15",
+          "pos": {
+            "x": 30.95,
+            "y": 88.991
+          }
+        },
+        "endPos": {
+          "instanceName": "LM17",
+          "pos": {
+            "x": 9.138,
+            "y": 88.857
+          }
+        },
+        "controlPos1": {
+          "x": 23.679,
+          "y": 88.946
+        },
+        "controlPos2": {
+          "x": 16.408,
+          "y": 88.902
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM17-LM15",
+        "startPos": {
+          "instanceName": "LM17",
+          "pos": {
+            "x": 9.138,
+            "y": 88.857
+          }
+        },
+        "endPos": {
+          "instanceName": "LM15",
+          "pos": {
+            "x": 30.95,
+            "y": 88.991
+          }
+        },
+        "controlPos1": {
+          "x": 16.408,
+          "y": 88.902
+        },
+        "controlPos2": {
+          "x": 23.679,
+          "y": 88.946
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM18-LM17",
+        "startPos": {
+          "instanceName": "LM18",
+          "pos": {
+            "x": 11.541,
+            "y": 1.39
+          }
+        },
+        "endPos": {
+          "instanceName": "LM17",
+          "pos": {
+            "x": 9.138,
+            "y": 88.857
+          }
+        },
+        "controlPos1": {
+          "x": 10.74,
+          "y": 30.546
+        },
+        "controlPos2": {
+          "x": 9.939,
+          "y": 59.701
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM17-LM18",
+        "startPos": {
+          "instanceName": "LM17",
+          "pos": {
+            "x": 9.138,
+            "y": 88.857
+          }
+        },
+        "endPos": {
+          "instanceName": "LM18",
+          "pos": {
+            "x": 11.541,
+            "y": 1.39
+          }
+        },
+        "controlPos1": {
+          "x": 9.939,
+          "y": 59.701
+        },
+        "controlPos2": {
+          "x": 10.74,
+          "y": 30.546
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM18-LM4",
+        "startPos": {
+          "instanceName": "LM18",
+          "pos": {
+            "x": 11.541,
+            "y": 1.39
+          }
+        },
+        "endPos": {
+          "instanceName": "LM4",
+          "pos": {
+            "x": -0.753,
+            "y": 0.263
+          }
+        },
+        "controlPos1": {
+          "x": 7.443,
+          "y": 1.014
+        },
+        "controlPos2": {
+          "x": 3.345,
+          "y": 0.639
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM4-LM18",
+        "startPos": {
+          "instanceName": "LM4",
+          "pos": {
+            "x": -0.753,
+            "y": 0.263
+          }
+        },
+        "endPos": {
+          "instanceName": "LM18",
+          "pos": {
+            "x": 11.541,
+            "y": 1.39
+          }
+        },
+        "controlPos1": {
+          "x": 3.345,
+          "y": 0.639
+        },
+        "controlPos2": {
+          "x": 7.443,
+          "y": 1.014
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM2-LM14",
+        "startPos": {
+          "instanceName": "LM2",
+          "pos": {
+            "x": 30.792,
+            "y": 78.037
+          }
+        },
+        "endPos": {
+          "instanceName": "LM14",
+          "pos": {
+            "x": 30.715,
+            "y": 81.346
+          }
+        },
+        "controlPos1": {
+          "x": 30.766,
+          "y": 79.14
+        },
+        "controlPos2": {
+          "x": 30.741,
+          "y": 80.243
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM14-LM2",
+        "startPos": {
+          "instanceName": "LM14",
+          "pos": {
+            "x": 30.715,
+            "y": 81.346
+          }
+        },
+        "endPos": {
+          "instanceName": "LM2",
+          "pos": {
+            "x": 30.792,
+            "y": 78.037
+          }
+        },
+        "controlPos1": {
+          "x": 30.741,
+          "y": 80.243
+        },
+        "controlPos2": {
+          "x": 30.766,
+          "y": 79.14
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM19-LM2",
+        "startPos": {
+          "instanceName": "LM19",
+          "pos": {
+            "x": 34.227,
+            "y": 80.27
+          }
+        },
+        "endPos": {
+          "instanceName": "LM2",
+          "pos": {
+            "x": 30.792,
+            "y": 78.037
+          }
+        },
+        "controlPos1": {
+          "x": 33.082,
+          "y": 79.526
+        },
+        "controlPos2": {
+          "x": 31.603,
+          "y": 79.544
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM2-LM19",
+        "startPos": {
+          "instanceName": "LM2",
+          "pos": {
+            "x": 30.792,
+            "y": 78.037
+          }
+        },
+        "endPos": {
+          "instanceName": "LM19",
+          "pos": {
+            "x": 34.227,
+            "y": 80.27
+          }
+        },
+        "controlPos1": {
+          "x": 31.603,
+          "y": 79.544
+        },
+        "controlPos2": {
+          "x": 33.082,
+          "y": 79.526
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "LM1",
+      "x": 25.812,
+      "y": 77.878
+    },
+    {
+      "id": "LM2",
+      "x": 30.792,
+      "y": 78.037
+    },
+    {
+      "id": "LM3",
+      "x": 33.142,
+      "y": 3.175
+    },
+    {
+      "id": "LM4",
+      "x": -0.753,
+      "y": 0.263
+    },
+    {
+      "id": "LM5",
+      "x": -27.524,
+      "y": -0.545
+    },
+    {
+      "id": "LM6",
+      "x": -38.019,
+      "y": 0.162
+    },
+    {
+      "id": "LM7",
+      "x": -40.914,
+      "y": 80.467
+    },
+    {
+      "id": "LM8",
+      "x": -63.505,
+      "y": 80.395
+    },
+    {
+      "id": "LM9",
+      "x": -63.37,
+      "y": 1.277
+    },
+    {
+      "id": "LM10",
+      "x": 33.906,
+      "y": 78.311
+    },
+    {
+      "id": "AP11",
+      "x": 36.657,
+      "y": 78.393
+    },
+    {
+      "id": "AP12",
+      "x": 30.95,
+      "y": 73.743
+    },
+    {
+      "id": "LM13",
+      "x": 27.574,
+      "y": 81.346
+    },
+    {
+      "id": "LM14",
+      "x": 30.715,
+      "y": 81.346
+    },
+    {
+      "id": "LM15",
+      "x": 30.95,
+      "y": 88.991
+    },
+    {
+      "id": "LM16",
+      "x": 90.0,
+      "y": 88.371
+    },
+    {
+      "id": "LM17",
+      "x": 9.138,
+      "y": 88.857
+    },
+    {
+      "id": "LM18",
+      "x": 11.541,
+      "y": 1.39
+    },
+    {
+      "id": "LM19",
+      "x": 34.227,
+      "y": 80.27
+    }
+  ],
+  "edges": [
+    {
+      "from": "LM3",
+      "to": "LM2",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM2",
+      "to": "LM3",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM5",
+      "to": "LM4",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM4",
+      "to": "LM5",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM6",
+      "to": "LM5",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM5",
+      "to": "LM6",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM9",
+      "to": "LM6",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM6",
+      "to": "LM9",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM6",
+      "to": "LM7",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM7",
+      "to": "LM6",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM7",
+      "to": "LM8",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM8",
+      "to": "LM7",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM8",
+      "to": "LM9",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM9",
+      "to": "LM8",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM2",
+      "to": "LM10",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM10",
+      "to": "LM2",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM10",
+      "to": "AP11",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "AP11",
+      "to": "LM10",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "AP12",
+      "to": "LM2",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM2",
+      "to": "AP12",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM2",
+      "to": "AP11",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "AP11",
+      "to": "LM2",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM14",
+      "to": "LM15",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM15",
+      "to": "LM14",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM15",
+      "to": "LM17",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM17",
+      "to": "LM15",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM18",
+      "to": "LM17",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM17",
+      "to": "LM18",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM18",
+      "to": "LM4",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM4",
+      "to": "LM18",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM2",
+      "to": "LM14",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM14",
+      "to": "LM2",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM19",
+      "to": "LM2",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM2",
+      "to": "LM19",
+      "bidirectional": true,
+      "capacity": 1
+    }
+  ]
+}

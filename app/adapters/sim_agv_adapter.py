@@ -27,10 +27,37 @@ class SimAGVAdapter:
         self._traffic_service = TrafficService(map_data)
         self._dispatch_service = DispatchService(map_data)
 
-        # 3 台 AGV，初始分布在不同节点（接收区、主通道、装配区）
-        nodes = [n.id for n in map_data.nodes]
-        init_nodes = ["R1", "C3", "A2"] if all(n in nodes for n in ["R1", "C3", "A2"]) else nodes[:3]
-        self._agvs: list[AGV] = [
+        # 3 台 AGV，智能选择初始节点
+        self._agvs: list[AGV] = self._create_initial_agvs()
+
+        self._tasks: dict[str, Task] = {}
+        self._running = False
+        self._tick_task: asyncio.Task | None = None
+
+    def _create_initial_agvs(self) -> list[AGV]:
+        """
+        创建初始 AGV，智能选择分布合理的节点
+        """
+        nodes = [n.id for n in self._map_data.nodes]
+        
+        if not nodes:
+            return []
+            
+        # 尝试使用常见的节点名称模式
+        common_nodes = ["R1", "R2", "R3", "C1", "C2", "C3", "D1", "D2", "A1", "A2", "A3"]
+        available_common = [n for n in common_nodes if n in nodes]
+        
+        if len(available_common) >= 3:
+            # 如果有足够的常见节点，优先使用它们
+            init_nodes = available_common[:3]
+        else:
+            # 否则，选择分布均匀的节点
+            init_nodes = self._select_distributed_nodes(nodes, 3)
+        
+        # 如果节点数少于3，则每个节点一辆AGV
+        actual_count = min(3, len(init_nodes))
+        
+        return [
             AGV(
                 id=f"AGV-{i+1:03d}",
                 current_node=init_nodes[i],
@@ -38,12 +65,25 @@ class SimAGVAdapter:
                 path=[],
                 color=self.AGV_COLORS[i],
             )
-            for i in range(min(3, len(init_nodes)))
+            for i in range(actual_count)
         ]
-
-        self._tasks: dict[str, Task] = {}
-        self._running = False
-        self._tick_task: asyncio.Task | None = None
+    
+    def _select_distributed_nodes(self, nodes: list[str], count: int) -> list[str]:
+        """
+        从节点列表中选择分布均匀的节点
+        简单实现：从整个列表中等间隔选择节点
+        """
+        if len(nodes) <= count:
+            return nodes.copy()
+        
+        step = len(nodes) // count
+        selected = []
+        
+        for i in range(count):
+            idx = i * step
+            selected.append(nodes[idx])
+        
+        return selected
 
     def get_agvs(self) -> list[AGV]:
         """获取所有 AGV"""

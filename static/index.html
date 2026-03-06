@@ -25,12 +25,13 @@
         }
         canvas { display: block; }
         #sidebar {
-            width: 320px;
+            width: 340px;
             background: #0f3460;
             display: flex;
             flex-direction: column;
             padding: 16px;
             box-shadow: -4px 0 12px rgba(0,0,0,0.4);
+            overflow-y: auto;
         }
         h2 { margin: 0 0 16px; font-size: 18px; color: #00d9ff; }
         h3 { font-size: 13px; color: #7f8c8d; margin: 12px 0 8px; padding-bottom: 6px; border-bottom: 1px solid #2c3e50; }
@@ -41,6 +42,14 @@
             margin-bottom: 12px;
             font-size: 13px;
         }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 12px;
+        }
+        .data-label { color: #95a5a6; }
+        .data-value { color: #e0e0e0; font-weight: 500; }
         .agv-item {
             display: flex;
             justify-content: space-between;
@@ -86,7 +95,7 @@
         }
         .log-panel {
             flex: 1;
-            min-height: 120px;
+            min-height: 100px;
             background: #0d1117;
             border: 1px solid #2c3e50;
             border-radius: 6px;
@@ -98,6 +107,7 @@
         }
         .log-entry { margin-bottom: 4px; }
         .log-time { color: #484f58; margin-right: 6px; }
+        .highlight { color: #00d9ff; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -111,6 +121,12 @@
             <button id="btn-start" class="success" onclick="simStart()">启动模拟</button>
             <button id="btn-stop" class="danger" onclick="simStop()">停止模拟</button>
         </div>
+        <div class="control-row">
+            <input type="file" id="mapFile" accept=".json,.smap" style="display:none" onchange="importMap()">
+            <button style="background:#9b59b6" onclick="document.getElementById('mapFile').click()">导入地图</button>
+        </div>
+        <h3>地图数据</h3>
+        <div class="stat-card" id="map-info">加载中...</div>
         <h3>创建任务</h3>
         <p style="font-size:11px;color:#95a5a6;margin:0 0 8px;">AGV 只有接到任务才会移动</p>
         <div class="task-form">
@@ -147,7 +163,39 @@
 
         async function fetchMap() {
             const r = await fetch(API_BASE + '/map');
-            if (r.ok) mapData = await r.json();
+            if (r.ok) {
+                mapData = await r.json();
+                updateMapInfo();
+            }
+        }
+
+        function updateMapInfo() {
+            const infoDiv = document.getElementById('map-info');
+            const imported = mapData.imported_data || {};
+            const header = imported.header || {};
+
+            let html = '';
+
+            if (header.mapName) {
+                html += `<div class="data-row"><span class="data-label">地图名称:</span><span class="data-value highlight">${header.mapName}</span></div>`;
+            }
+            if (header.resolution) {
+                html += `<div class="data-row"><span class="data-label">分辨率:</span><span class="data-value">${header.resolution}</span></div>`;
+            }
+            if (header.version) {
+                html += `<div class="data-row"><span class="data-label">版本:</span><span class="data-value">${header.version}</span></div>`;
+            }
+            html += `<div class="data-row"><span class="data-label">节点数量:</span><span class="data-value">${mapData.nodes ? mapData.nodes.length : 0}</span></div>`;
+            html += `<div class="data-row"><span class="data-label">边数量:</span><span class="data-value">${mapData.edges ? mapData.edges.length : 0}</span></div>`;
+
+            if (imported.advancedPointList) {
+                html += `<div class="data-row"><span class="data-label highlight">advancedPointList:</span><span class="data-value">${imported.advancedPointList.length} 个节点</span></div>`;
+            }
+            if (imported.advancedCurveList) {
+                html += `<div class="data-row"><span class="data-label highlight">advancedCurveList:</span><span class="data-value">${imported.advancedCurveList.length} 条边</span></div>`;
+            }
+
+            infoDiv.innerHTML = html || '无地图数据';
         }
 
         async function fetchFleet() {
@@ -183,6 +231,55 @@
             const data = await r.json();
             if (r.ok) log(`任务已创建: ${fromNode} -> ${toNode} (${data.assigned_agv_id || '待分配'})`);
             else log('创建失败: ' + (data.error || data.detail));
+        }
+
+        async function importMap() {
+            const fileInput = document.getElementById('mapFile');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            log('正在导入地图: ' + file.name);
+            const text = await file.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                log('地图文件格式错误');
+                return;
+            }
+
+            // 检查是否有 advanced 数据
+            const hasAdvanced = data.advancedPointList && data.advancedCurveList;
+            if (hasAdvanced) {
+                log('检测到 advancedPointList 和 advancedCurveList');
+                log(`  - advancedPointList: ${data.advancedPointList.length} 个节点`);
+                log(`  - advancedCurveList: ${data.advancedCurveList.length} 条边`);
+            } else {
+                log('使用 normalPosList (兼容模式)');
+            }
+
+            const r = await fetch(API_BASE + '/map/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await r.json();
+            if (r.ok) {
+                log(`<span class="highlight">地图导入成功: ${result.mapName}</span>`);
+                log(`  - 节点: ${result.nodeCount}`);
+                log(`  - 边: ${result.edgeCount}`);
+                if (result.advancedPointListCount !== undefined) {
+                    log(`  - advancedPointList: ${result.advancedPointListCount} 个节点`);
+                }
+                if (result.advancedCurveListCount !== undefined) {
+                    log(`  - advancedCurveList: ${result.advancedCurveListCount} 条边`);
+                }
+                await fetchMap();
+                render();
+            } else {
+                log('导入失败: ' + (result.error || result.detail));
+            }
+            fileInput.value = '';
         }
 
         function startPoll() {

@@ -1,14 +1,19 @@
 # AGV 调度系统 Demo
 
-基于 FastAPI 的可扩展 AGV 调度系统，支持地图可视化与模拟运行，后续可替换为真实 AGV。
+基于 FastAPI 的可扩展 AGV 调度系统，支持地图可视化与模拟运行，**前后端分离**，后续可替换为真实 AGV。
 
 ## 架构
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  API 层 (FastAPI routers)                                     │
-│  GET /map | GET /fleet | POST /tasks | GET /tasks             │
-│  POST /sim/start | POST /sim/stop                             │
+│  前端 (frontend/) - Vue 3 + Vite                              │
+│  开发时 Vite proxy 转发 /api，生产环境配置 VITE_API_BASE        │
+└─────────────────────────────────────────────────────────────┘
+                              │ HTTP
+┌─────────────────────────────────────────────────────────────┐
+│  API 层 (FastAPI routers) - 统一 /api 前缀                      │
+│  GET /api/map | GET /api/fleet | POST /api/tasks | GET /api/tasks │
+│  POST /api/sim/start | POST /api/sim/stop                     │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
@@ -35,7 +40,7 @@
 
 ```
 AGV/
-├── app/
+├── app/                       # 后端
 │   ├── data/
 │   │   └── map_demo.json      # 地图：nodes + edges
 │   ├── domain/
@@ -54,24 +59,39 @@ AGV/
 │   │   ├── tasks_router.py
 │   │   └── sim_router.py
 │   └── main.py
-├── static/
-│   └── index.html             # 前端可视化
+├── frontend/                  # 前端（Vue 3 + Vite）
+│   ├── src/
+│   │   ├── App.vue
+│   │   ├── main.js
+│   │   └── api.js
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+├── static/                    # 旧版（已弃用，可删除）
 ├── requirements.txt
 └── README.md
 ```
 
-## 如何运行
+## 如何运行（前后端分离）
 
+**终端 1 - 启动后端：**
 ```bash
-# 安装依赖
 pip install -r requirements.txt
-
-# 启动服务
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-- 前端：<http://localhost:8000/>
+**终端 2 - 启动前端：**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+- 前端：<http://localhost:3000/>（Vite 自动代理 /api 到后端）
+- 后端 API：<http://localhost:8000/api/...>
 - API 文档：<http://localhost:8000/docs>
+
+> 生产环境：配置 `frontend/.env` 中的 `VITE_API_BASE` 为实际后端地址，或通过 nginx 反向代理使用相对路径 `/api`。
 
 ### 使用流程
 
@@ -103,8 +123,9 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ## 现有文件说明
 
+- `frontend/`：Vue 3 + Vite 前端，开发时自动代理 /api 到后端
 - `agv_simulation.html`：早期纯前端演示（无后端），可作参考
-- `static/index.html`：当前使用的前端，对接 FastAPI 接口
+- `static/`：旧版 HTML 前端（已弃用，可删除）
 
 ## 如何扩展到真实 AGV
 

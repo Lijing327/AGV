@@ -17,11 +17,21 @@ class PathService:
     def _build_adjacency(self) -> None:
         """构建邻接表"""
         self._adj = {}
+        
+        # 首先添加所有节点
+        for node in self._map_data.nodes:
+            self._adj[node.id] = []
+        
+        # 然后添加边连接
         for edge in self._map_data.edges:
-            if edge.from_node not in self._adj:
-                self._adj[edge.from_node] = []
-            if edge.to_node not in self._adj[edge.from_node]:
+            # 添加正向连接
+            if edge.from_node in self._adj and edge.to_node not in self._adj[edge.from_node]:
                 self._adj[edge.from_node].append(edge.to_node)
+            
+            # 如果是双向边，添加反向连接
+            if edge.bidirectional:
+                if edge.to_node in self._adj and edge.from_node not in self._adj[edge.to_node]:
+                    self._adj[edge.to_node].append(edge.from_node)
 
     def find_path(self, from_node: str, to_node: str) -> list[str]:
         """

@@ -58,3 +58,23 @@ class MapRepository:
         if self._map_data is None:
             self.load()
         return self._map_data.edges
+
+    def save(self, nodes, edges, meta=None):
+        """保存地图数据到文件"""
+        with open(self._map_path, 'w', encoding='utf-8') as f:
+            data = {
+                "nodes": [{"id": n.id, "x": n.x, "y": n.y} for n in nodes],
+                "edges": [
+                    {
+                        "from": e.from_node,
+                        "to": e.to_node,
+                        "bidirectional": e.bidirectional,
+                        "capacity": e.capacity,
+                        "occupied_by": e.occupied_by,
+                    }
+                    for e in edges
+                ],
+            }
+            if meta:
+                data["meta"] = meta
+            json.dump(data, f, ensure_ascii=False, indent=2)

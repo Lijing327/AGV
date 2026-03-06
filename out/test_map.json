@@ -1,0 +1,114 @@
+{
+  "meta": {
+    "mapName": "test_example",
+    "resolution": 0.02,
+    "version": "1.0.0",
+    "minPos": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "maxPos": {
+      "x": 10.0,
+      "y": 10.0
+    }
+  },
+  "nodes": [
+    {
+      "id": "start",
+      "type": "NormalPoint",
+      "x": 0.0,
+      "y": 0.0
+    },
+    {
+      "id": "mid1",
+      "type": "NormalPoint",
+      "x": 5.0,
+      "y": 0.0
+    },
+    {
+      "id": "mid2",
+      "type": "NormalPoint",
+      "x": 5.0,
+      "y": 5.0
+    },
+    {
+      "id": "end",
+      "type": "NormalPoint",
+      "x": 10.0,
+      "y": 5.0
+    }
+  ],
+  "edges": [
+    {
+      "id": "path_1",
+      "source": "start",
+      "target": "mid1",
+      "bezier": {
+        "x1": 2.5,
+        "y1": 1.0,
+        "x2": 2.5,
+        "y2": -1.0
+      },
+      "length": 5.165275545577683
+    },
+    {
+      "id": "path_2",
+      "source": "mid1",
+      "target": "mid2",
+      "bezier": null,
+      "length": 5.0
+    },
+    {
+      "id": "path_3",
+      "source": "mid2",
+      "target": "end",
+      "bezier": {
+        "x1": 7.5,
+        "y1": 5.0,
+        "x2": 7.5,
+        "y2": 5.0
+      },
+      "length": 5.0
+    }
+  ],
+  "adjacency": {
+    "start": [
+      {
+        "to": "mid1",
+        "edgeId": "path_1",
+        "cost": 5.165275545577683
+      }
+    ],
+    "mid1": [
+      {
+        "to": "start",
+        "edgeId": "path_1",
+        "cost": 5.165275545577683
+      },
+      {
+        "to": "mid2",
+        "edgeId": "path_2",
+        "cost": 5.0
+      }
+    ],
+    "end": [
+      {
+        "to": "mid2",
+        "edgeId": "path_3",
+        "cost": 5.0
+      }
+    ],
+    "mid2": [
+      {
+        "to": "mid1",
+        "edgeId": "path_2",
+        "cost": 5.0
+      },
+      {
+        "to": "end",
+        "edgeId": "path_3",
+        "cost": 5.0
+      }
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "header": {
+    "mapType": "2D-Map",
+    "mapName": "test_example",
+    "minPos": {"x": 0.0, "y": 0.0},
+    "maxPos": {"x": 10.0, "y": 10.0},
+    "resolution": 0.02,
+    "version": "1.0.0"
+  },
+  "normalPosList": [],
+  "advancedPointList": [
+    {"instanceName": "start", "className": "NormalPoint", "pos": {"x": 0.0, "y": 0.0}},
+    {"instanceName": "mid1", "className": "NormalPoint", "pos": {"x": 5.0, "y": 0.0}},
+    {"instanceName": "mid2", "className": "NormalPoint", "pos": {"x": 5.0, "y": 5.0}},
+    {"instanceName": "end", "className": "NormalPoint", "pos": {"x": 10.0, "y": 5.0}}
+  ],
+  "advancedCurveList": [
+    {
+      "instanceName": "path_1",
+      "className": "BezierPath",
+      "startPos": {"instanceName": "start"},
+      "endPos": {"instanceName": "mid1"},
+      "controlPos1": {"x": 2.5, "y": 1.0},
+      "controlPos2": {"x": 2.5, "y": -1.0}
+    },
+    {
+      "instanceName": "path_2",
+      "className": "NormalPath",
+      "startPos": {"instanceName": "mid1"},
+      "endPos": {"instanceName": "mid2"}
+    },
+    {
+      "instanceName": "path_3",
+      "className": "BezierPath",
+      "startPos": {"instanceName": "mid2"},
+      "endPos": {"instanceName": "end"},
+      "controlPos1": {"x": 7.5, "y": 5.0},
+      "controlPos2": {"x": 7.5, "y": 5.0}
+    }
+  ]
+}
