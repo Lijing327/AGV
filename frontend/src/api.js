@@ -47,6 +47,15 @@ export async function importMap(data) {
   return r.json()
 }
 
+export async function importMapFromFile(filePath) {
+  const r = await fetch(`${API_BASE}/map/import-file`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: filePath }),
+  })
+  return r.json()
+}
+
 // ==================== Robokit 机器人API ====================
 
 // 连接管理
@@ -168,6 +177,13 @@ export async function robokitConfirmLocation() {
   return data
 }
 
+export async function robokitCancelRelocate() {
+  const r = await fetch(`${API_BASE}/robokit/control/cancel-relocate`, { method: 'POST' })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
 export async function robokitMove(vx, vy = 0, w = 0) {
   const r = await fetch(`${API_BASE}/robokit/control/move`, {
     method: 'POST',
@@ -221,6 +237,33 @@ export async function robokitPathNavigation(pathId) {
     body: JSON.stringify({ path_id: pathId }),
   })
   return r.ok ? r.json() : null
+}
+
+/** 指定路径导航 (API 3066，端口19206) */
+export async function robokitSpecifiedPathNavigation(pathId) {
+  const r = await fetch(`${API_BASE}/robokit/navigation/specified-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path_id: pathId }),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+/** 平动 (API 3055，端口19206)：直线运动固定距离，只需给 dist，可选 vx/vy/mode */
+export async function robokitTranslate(dist, vx = null, vy = null, mode = 0) {
+  const body = { dist: Number(dist), mode }
+  if (vx != null) body.vx = Number(vx)
+  if (vy != null) body.vy = Number(vy)
+  const r = await fetch(`${API_BASE}/robokit/navigation/translate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
 }
 
 export async function robokitStopNavigation() {

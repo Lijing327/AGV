@@ -3,6 +3,7 @@ Robokit TCP/IP 客户端
 连接到Robokit机器人并调用各种API
 """
 import asyncio
+import json
 import socket
 from typing import Any
 from contextlib import asynccontextmanager
@@ -54,7 +55,7 @@ class RobokitClient:
         self._request_number = 0
         self._connections: dict[int, asyncio.StreamReader] = {}
         self._writers: dict[int, asyncio.StreamWriter] = {}
-        self._locks: dict[int, asyncio.Lock] = {}  # 每端口一把锁，防止并发读冲突
+        self._locks: dict[int, asyncio.Lock] = {}
 
     async def connect(self, port: int | None = None) -> bool:
         """

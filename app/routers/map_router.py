@@ -18,16 +18,34 @@ router = APIRouter(prefix="/map")
 
 @router.get("")
 def get_map():
-    """获取地图（nodes + edges）"""
+    """获取地图（nodes + edges + 点云 + 特征线）"""
     map_data = get_map_repo().get_map()
     import_meta = get_import_meta()
-    
-    # 构建响应数据
+
+    # 构建 advancedPointList 的 instanceName -> 原始数据 映射
+    adv_points = import_meta.get("advancedPointList") or []
+    adv_point_map = {}
+    for ap in adv_points:
+        name = ap.get("instanceName") if isinstance(ap, dict) else getattr(ap, "instanceName", None)
+        if name:
+            adv_point_map[name] = ap
+
+    # 节点响应：带上 type 和 dir 信息
+    nodes_resp = []
+    for n in map_data.nodes:
+        node_dict = {"id": n.id, "x": n.x, "y": n.y}
+        ap = adv_point_map.get(n.id)
+        if ap:
+            if isinstance(ap, dict):
+                node_dict["type"] = ap.get("className", "")
+                node_dict["dir"] = ap.get("dir", 0)
+            else:
+                node_dict["type"] = getattr(ap, "className", getattr(ap, "type", ""))
+                node_dict["dir"] = getattr(ap, "dir", 0)
+        nodes_resp.append(node_dict)
+
     response = {
-        "nodes": [
-            {"id": n.id, "x": n.x, "y": n.y}
-            for n in map_data.nodes
-        ],
+        "nodes": nodes_resp,
         "edges": [
             {
                 "from": e.from_node,
@@ -40,15 +58,14 @@ def get_map():
         ],
         "imported_data": {
             "header": import_meta.get("header") or {},
-            "advancedPointList": import_meta.get("advancedPointList"),
+            "advancedPointList": adv_points,
             "advancedCurveList": import_meta.get("advancedCurveList"),
         },
     }
-    
-    # 如果有邻接表数据，也包含在响应中
+
     if import_meta.get("adjacency"):
         response["adjacency"] = import_meta.get("adjacency")
-        
+
     return response
 
 
@@ -56,6 +73,32 @@ def get_map():
 def get_advanced_data():
     """获取最后导入的原始 advanced 数据"""
     return get_import_meta()
+
+
+@router.post("/import-file")
+def import_map_file(body: Annotated[dict, Body()]):
+    """从服务器本地文件路径导入 .smap 地图（适用于大文件，避免前端传输 8MB 数据）
+
+    Args:
+        body: {"path": "d:/00-Project/AGV/20260310.smap"}
+    """
+    file_path = body.get("path", "")
+    if not file_path:
+        return {"error": "缺少 path 参数", "success": False}
+
+    p = Path(file_path)
+    if not p.exists():
+        return {"error": f"文件不存在: {file_path}", "success": False}
+    if not p.suffix.lower() in ('.smap', '.json'):
+        return {"error": "仅支持 .smap / .json 文件", "success": False}
+
+    try:
+        with open(p, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception as e:
+        return {"error": f"文件读取失败: {e}", "success": False}
+
+    return import_map(data)
 
 
 @router.post("/import")
@@ -128,6 +171,7 @@ def import_map(data: Annotated[dict, Body()]):
                     "header": asdict(map_graph.meta),
                     "advancedPointList": data.get("advancedPointList"),
                     "advancedCurveList": data.get("advancedCurveList"),
+                    "advancedLineList": data.get("advancedLineList"),
                 }
             )
 

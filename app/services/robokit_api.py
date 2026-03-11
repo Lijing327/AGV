@@ -252,13 +252,21 @@ class RobotControlAPI:
         """
         return await self.client.call_control(2003)
 
+    async def cancel_relocate(self) -> dict:
+        """
+        取消重定位
+
+        API编号: 2004，端口19205
+        """
+        return await self.client.call_control(2004)
+
     async def move_by_velocity(self, vx: float, vy: float = 0, w: float = 0) -> dict:
         """
-        速度控制移动 (平动、转动)
+        开环运动 / 速度控制
 
-        API编号: 2004，端口19205 (2xxx属控制API，19206期望3xxx会报60000)
+        API编号: 2010，端口19205（文档中 2004=取消重定位，开环运动=2010）
         """
-        return await self.client.call_control(2004, {
+        return await self.client.call_control(2010, {
             "vx": vx,
             "vy": vy,
             "w": w
@@ -266,15 +274,11 @@ class RobotControlAPI:
 
     async def stop(self) -> dict:
         """
-        停止移动
+        停止开环运动
 
-        API编号: 2005
-        响应编号: 12005
-
-        Returns:
-            响应结果
+        API编号: 2000，端口19205
         """
-        return await self.client.call_control(2005)
+        return await self.client.call_control(2000)
 
     async def emergency_stop(self) -> dict:
         """
@@ -326,6 +330,32 @@ class RobotNavigationAPI:
         return await self.client.call_navigation(3051, {
             "path_id": path_id
         })
+
+    async def specified_path_navigation(self, path_id: int) -> dict:
+        """
+        指定路径导航
+
+        API编号: 3066，端口19206
+        """
+        return await self.client.call_navigation(3066, {"path_id": path_id})
+
+    async def translate(self, dist: float, vx: float = None, vy: float = None, mode: int = 0) -> dict:
+        """
+        平动：以固定速度直线运动固定距离
+
+        API编号: 3055，端口19206
+        Args:
+            dist: 直线运动距离 m，绝对值
+            vx: 可选，X 方向速度 m/s
+            vy: 可选，Y 方向速度 m/s
+            mode: 0=里程模式 1=定位模式
+        """
+        params = {"dist": dist, "mode": mode}
+        if vx is not None:
+            params["vx"] = vx
+        if vy is not None:
+            params["vy"] = vy
+        return await self.client.call_navigation(3055, params)
 
     async def stop_navigation(self) -> dict:
         """

@@ -144,17 +144,19 @@ def import_smap(path: str) -> MapGraph:
         if missing_nodes:
             raise ValueError(f"边 '{instance_name}' 引用不存在的节点: {missing_nodes}")
 
-        # 解析贝塞尔曲线（如果有）
+        # 解析贝塞尔曲线（BezierPath / DegenerateBezier 均含控制点）
         bezier = None
-        if curve_data.get("className") == "BezierPath":
+        class_name = curve_data.get("className", "")
+        if class_name in ("BezierPath", "DegenerateBezier"):
             control_pos1 = curve_data.get("controlPos1", {})
             control_pos2 = curve_data.get("controlPos2", {})
-            bezier = Bezier(
-                x1=float(control_pos1.get("x", 0.0)),
-                y1=float(control_pos1.get("y", 0.0)),
-                x2=float(control_pos2.get("x", 0.0)),
-                y2=float(control_pos2.get("y", 0.0)),
-            )
+            if control_pos1 and control_pos2:
+                bezier = Bezier(
+                    x1=float(control_pos1.get("x", 0.0)),
+                    y1=float(control_pos1.get("y", 0.0)),
+                    x2=float(control_pos2.get("x", 0.0)),
+                    y2=float(control_pos2.get("y", 0.0)),
+                )
 
         edges.append(Edge(
             id=instance_name,

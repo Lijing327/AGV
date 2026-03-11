@@ -432,7 +432,7 @@ async def relocate(
 @router.post("/control/confirm-location")
 async def confirm_location():
     """
-    确认定位正确
+    确认定位正确 (API 2003)
 
     Returns:
         {"ret_code": 0}
@@ -445,6 +445,21 @@ async def confirm_location():
     except RobokitError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.post("/control/cancel-relocate")
+async def cancel_relocate():
+    """
+    取消重定位 (API 2004，端口19205)
+    """
+    client = get_robokit_client()
+    try:
+        result = await client.call_control(2004)
+        check_response(result)
+        return result
+    except (TimeoutError, ConnectionError) as e:
+        raise HTTPException(status_code=504 if isinstance(e, TimeoutError) else 503, detail=str(e))
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.post("/control/move")
 async def move_by_velocity(
     vx: float = Body(..., embed=True),
@@ -452,7 +467,8 @@ async def move_by_velocity(
     w: float = Body(0, embed=True)
 ):
     """
-    速度控制移动
+    开环运动 / 速度控制 (API 2010，端口19205)
+    原 2004 在部分文档中为「取消重定位」，开环运动为 2010。
 
     Request Body:
         {
@@ -466,7 +482,7 @@ async def move_by_velocity(
     """
     client = get_robokit_client()
     try:
-        result = await client.call_control(2004, {"vx": vx, "vy": vy, "w": w})
+        result = await client.call_control(2010, {"vx": vx, "vy": vy, "w": w})
         check_response(result)
         return result
     except (TimeoutError, ConnectionError) as e:
@@ -477,14 +493,11 @@ async def move_by_velocity(
 @router.post("/control/stop")
 async def stop_movement():
     """
-    停止移动
-
-    Returns:
-        {"ret_code": 0}
+    停止开环运动 (API 2000，端口19205)
     """
     client = get_robokit_client()
     try:
-        result = await client.call_control(2005)
+        result = await client.call_control(2000)
         check_response(result)
         return result
     except (TimeoutError, ConnectionError) as e:
@@ -545,7 +558,7 @@ async def emergency_stop():
 @router.post("/navigation/path")
 async def path_navigation(path_id: int = Body(..., embed=True)):
     """
-    路径导航
+    路径导航 (API 3051，端口19206)
 
     Request Body:
         {
@@ -558,6 +571,63 @@ async def path_navigation(path_id: int = Body(..., embed=True)):
     client = get_robokit_client()
     try:
         result = await client.call_navigation(3051, {"path_id": path_id})
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/navigation/specified-path")
+async def specified_path_navigation(path_id: int = Body(..., embed=True)):
+    """
+    指定路径导航 (API 3066，端口19206)
+    需要地图上已有路径，传入 path_id。
+
+    Request Body:
+        {
+            "path_id": 1          // 路径ID
+        }
+
+    Returns:
+        {"ret_code": 0}
+    """
+    client = get_robokit_client()
+    try:
+        result = await client.call_navigation(3066, {"path_id": path_id})
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/navigation/translate")
+async def translate(
+    dist: float = Body(..., embed=True, description="直线运动距离(绝对值), 单位 m"),
+    vx: float = Body(None, embed=True, description="X 方向速度 m/s，正向前负向后"),
+    vy: float = Body(None, embed=True, description="Y 方向速度 m/s，正向左负向右"),
+    mode: int = Body(0, embed=True, description="0=里程模式 1=定位模式"),
+):
+    """
+    平动 (API 3055，端口19206)
+    以固定速度直线运动固定距离，不需要路径点，只需给距离（和可选速度）。
+
+    Request Body:
+        {
+            "dist": 1.0,     // 直线运动距离 m，必填
+            "vx": 0.3,       // 可选，缺省由设备决定
+            "vy": 0,         // 可选
+            "mode": 0        // 可选，0=里程模式 1=定位模式
+        }
+
+    Returns:
+        {"ret_code": 0}
+    """
+    client = get_robokit_client()
+    try:
+        params = {"dist": dist, "mode": mode}
+        if vx is not None:
+            params["vx"] = vx
+        if vy is not None:
+            params["vy"] = vy
+        result = await client.call_navigation(3055, params)
         check_response(result)
         return result
     except RobokitError as e:
@@ -650,7 +720,7 @@ async def set_robot_mode(mode: int = Body(..., embed=True)):
     Request Body:
         {"mode": 0}  # 0=手动模式, 1=自动模式
 
-    手动模式: 可执行移动(2004)、重定位(2002)等控制指令
+    手动模式: 可执行开环运动(2010)、重定位(2002)等控制指令
     自动模式: 可执行任务API(导航、去目标点等)
     错误40020(control is preempted)表示当前为自动模式，需先切换为手动模式
     """
@@ -697,6 +767,7 @@ async def set_current_map(map_name: str = Body(..., embed=True)):
     """
     client = get_robokit_client()
     try:
+        # 文档中 4005 为抢占控制权；若设备要求不同编号请改为对应 API
         result = await client.call_config(4005, {"map_name": map_name})
         check_response(result)
         return result
@@ -770,6 +841,7 @@ async def get_error_codes():
             40001: "必要参数缺失",
             40002: "参数类型错误",
             40004: "运行模式错误",
+            40009: "API 已弃用(如 3.3.4+ 弃用模式切换 4000，抢占控制后可直接执行移动)",
             40012: "调度系统控制中(需先抢占控制)",
             40016: "急停状态中",
             40020: "控制权被抢占(需先抢占控制)",
