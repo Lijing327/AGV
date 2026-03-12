@@ -4,8 +4,9 @@ Robokit TCP/IP 客户端
 """
 import asyncio
 import json
+import struct
 import socket
-from typing import Any
+from typing import Any, Callable, Optional
 from contextlib import asynccontextmanager
 
 from app.adapters.robokit_protocol import (
@@ -56,6 +57,10 @@ class RobokitClient:
         self._connections: dict[int, asyncio.StreamReader] = {}
         self._writers: dict[int, asyncio.StreamWriter] = {}
         self._locks: dict[int, asyncio.Lock] = {}
+        self._push_task: asyncio.Task | None = None
+        self._push_reader: asyncio.StreamReader | None = None
+        self._push_writer: asyncio.StreamWriter | None = None
+        self._push_position_callback: Optional[Callable[..., Any]] = None
 
     async def connect(self, port: int | None = None) -> bool:
         """
@@ -91,6 +96,7 @@ class RobokitClient:
         Args:
             port: 端口号，None关闭所有连接
         """
+        await self.stop_push_listener()
         if port is None:
             # 关闭所有连接
             ports = list(self._writers.keys())
@@ -228,6 +234,91 @@ class RobokitClient:
         """
         port = port or self.default_port
         return port in self._connections
+
+    # ==================== 机器人推送 API (端口 19301) ====================
+
+    async def start_push_listener(self, on_position: Optional[Callable[..., Any]] = None) -> bool:
+        """
+        连接机器人推送端口 19301，持续监听位置等数据
+
+        机器人会主动推送数据，客户端只需连接并读取。
+        每次收到推送后调用 on_position(data) 传递解析后的 JSON。
+
+        Args:
+            on_position: 收到推送数据时的回调，参数为 dict
+
+        Returns:
+            是否连接成功
+        """
+        if self._push_task and not self._push_task.done():
+            return True  # 已在监听
+
+        self._push_position_callback = on_position
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(self.host, PORT_PUSH),
+                timeout=self.timeout
+            )
+            self._push_reader = reader
+            self._push_writer = writer
+            self._push_task = asyncio.create_task(self._push_listen_loop())
+            return True
+        except Exception as e:
+            print(f"推送端口连接失败 {self.host}:{PORT_PUSH} - {e}")
+            return False
+
+    async def _push_listen_loop(self) -> None:
+        """推送监听循环：持续读取报文并解析"""
+        reader = self._push_reader
+        if not reader:
+            return
+        try:
+            while True:
+                header_data = await reader.readexactly(HEADER_SIZE)
+                sync, version, number, length, msg_type, _ = struct.unpack(
+                    '!BBHLH6s', header_data
+                )
+                if sync != 0x5A:
+                    continue
+                data_bytes = await reader.readexactly(length) if length > 0 else b''
+                if data_bytes:
+                    try:
+                        data = json.loads(data_bytes.decode('utf-8'))
+                        if self._push_position_callback:
+                            self._push_position_callback(data)
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        pass
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            print(f"推送监听异常: {e}")
+        finally:
+            self._push_reader = None
+            if self._push_writer:
+                try:
+                    self._push_writer.close()
+                    await self._push_writer.wait_closed()
+                except Exception:
+                    pass
+                self._push_writer = None
+
+    async def stop_push_listener(self) -> None:
+        """停止推送监听"""
+        if self._push_task and not self._push_task.done():
+            self._push_task.cancel()
+            try:
+                await self._push_task
+            except asyncio.CancelledError:
+                pass
+            self._push_task = None
+        self._push_reader = None
+        if self._push_writer:
+            try:
+                self._push_writer.close()
+                await self._push_writer.wait_closed()
+            except Exception:
+                pass
+            self._push_writer = None
 
 
 # 同步版本的客户端（用于简单的脚本场景）

@@ -2,11 +2,12 @@
 Robokit REST API 路由器
 提供HTTP接口供前端调用Robokit机器人API
 """
+import json
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Body
 
-from app.deps import get_robokit_client
+from app.deps import get_robokit_client, _on_robot_push, get_robot_push_position, clear_robot_push_position
 from app.services.robokit_api import (
     RobokitAPI, RobokitError, RobokitConnectionError, RobokitTimeoutError, check_response,
     API_RELEASE_CONTROL, API_TAKE_CONTROL,
@@ -37,6 +38,8 @@ async def connect(
     try:
         success = await client.connect(port)
         if success:
+            # 启动机器人推送监听（端口 19301），用于地图实时位置
+            await client.start_push_listener(on_position=_on_robot_push)
             return {"success": True, "message": "连接成功"}
         else:
             return {"success": False, "message": "连接失败"}
@@ -54,6 +57,7 @@ async def disconnect():
     client = get_robokit_client()
     try:
         await client.close()
+        clear_robot_push_position()
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -71,6 +75,20 @@ async def get_status():
         "connected": client.is_connected(),
         "host": client.host
     }
+
+
+@router.get("/position")
+async def get_position():
+    """
+    获取机器人实时位置（来自推送 API 19301）
+
+    连接机器人后，后端会持续接收推送数据，此接口返回最新位置。
+    用于在地图上实时显示机器人位置。
+
+    Returns:
+        {"x": 1.2, "y": 3.4, "angle": 0.5, "vehicle_id": "AGV-001", ...}
+    """
+    return get_robot_push_position()
 
 # ==================== 机器人状态 API ====================
 
@@ -556,43 +574,68 @@ async def emergency_stop():
 # ==================== 机器人导航 API ====================
 
 @router.post("/navigation/path")
-async def path_navigation(path_id: int = Body(..., embed=True)):
+async def path_navigation(
+    source_id: str = Body(..., embed=True, description="起始站点名称，如 LM2 或 SELF_POSITION"),
+    id: str = Body(..., embed=True, alias="target_id", description="目标站点名称，如 LM1"),
+    task_id: Optional[str] = Body(None, embed=True),
+    **extra,
+):
     """
     路径导航 (API 3051，端口19206)
+    给定起点、终点站点名，机器人沿固定路径运行。文档要求必填：source_id、id；task_id 可缺省。
 
     Request Body:
         {
-            "path_id": 1          // 路径ID
+            "source_id": "LM2",   // 起始站点，或 "SELF_POSITION"
+            "target_id": "LM1",   // 目标站点（前端传 target_id，后端映射为 id）
+            "task_id": "可选"
         }
-
-    Returns:
-        {"ret_code": 0}
+    也可传文档中其它可选字段：angle, method, max_speed 等，会原样转发。
     """
     client = get_robokit_client()
+    body = {"source_id": source_id, "id": id}
+    if task_id is not None:
+        body["task_id"] = task_id
+    for k, v in extra.items():
+        if v is not None and k != "target_id":
+            body[k] = v
     try:
-        result = await client.call_navigation(3051, {"path_id": path_id})
+        result = await client.call_navigation(3051, body)
         check_response(result)
         return result
     except RobokitError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/navigation/specified-path")
-async def specified_path_navigation(path_id: int = Body(..., embed=True)):
+async def specified_path_navigation(body: dict = Body(..., embed=False)):
     """
     指定路径导航 (API 3066，端口19206)
-    需要地图上已有路径，传入 path_id。
+    请求体须为 move_task_list：站点序列，每段含 id、source_id、task_id（均为必填）。
 
     Request Body:
         {
-            "path_id": 1          // 路径ID
+            "move_task_list": [
+                {"source_id": "LM1", "id": "LM2", "task_id": "12344321"},
+                {"source_id": "LM2", "id": "AP1", "task_id": "12344322", "operation": "JackHeight", "jack_height": 0.2}
+            ]
         }
-
-    Returns:
-        {"ret_code": 0}
     """
+    move_task_list = body.get("move_task_list")
+    if not move_task_list or not isinstance(move_task_list, list):
+        raise HTTPException(status_code=400, detail="缺少 move_task_list 或格式错误，须为数组")
+    for i, item in enumerate(move_task_list):
+        if not isinstance(item, dict):
+            raise HTTPException(status_code=400, detail=f"move_task_list[{i}] 须为对象")
+        if not item.get("id") or not item.get("source_id") or not item.get("task_id"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"move_task_list[{i}] 须包含 id、source_id、task_id",
+            )
+    payload = {"move_task_list": move_task_list}
+    print("[3066] 指定路径导航 请求体:", json.dumps(payload, ensure_ascii=False, indent=2))
     client = get_robokit_client()
     try:
-        result = await client.call_navigation(3066, {"path_id": path_id})
+        result = await client.call_navigation(3066, {"move_task_list": move_task_list})
         check_response(result)
         return result
     except RobokitError as e:
@@ -636,7 +679,7 @@ async def translate(
 @router.post("/navigation/stop")
 async def stop_navigation():
     """
-    停止导航
+    停止导航 (API 3052)
 
     Returns:
         {"ret_code": 0}
@@ -644,6 +687,156 @@ async def stop_navigation():
     client = get_robokit_client()
     try:
         result = await client.call_navigation(3052)
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/navigation/pause")
+async def pause_navigation():
+    """暂停当前导航 (API 3001，端口19206)"""
+    client = get_robokit_client()
+    try:
+        result = await client.call_navigation(3001, None)
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/navigation/resume")
+async def resume_navigation():
+    """继续当前导航 (API 3002，端口19206)"""
+    client = get_robokit_client()
+    try:
+        result = await client.call_navigation(3002, None)
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/navigation/cancel")
+async def cancel_navigation():
+    """取消当前导航 (API 3003，端口19206)"""
+    client = get_robokit_client()
+    try:
+        result = await client.call_navigation(3003, None)
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/navigation/target-path")
+async def get_target_path(body: dict = Body(None, embed=False)):
+    """获取路径导航的路径 (API 3053，端口19206)。body 见接口文档，可为空。"""
+    client = get_robokit_client()
+    try:
+        result = await client.call_navigation(3053, body or {})
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/navigation/turn")
+async def turn(
+    move_angle: float = Body(..., embed=True, description="旋转角度 rad"),
+    speed_w: float = Body(None, embed=True, description="角速度 rad/s"),
+    loc_mode: int = Body(0, embed=True, description="0=里程 1=激光定位"),
+):
+    """转动 (API 3056)：以固定角速度旋转固定角度"""
+    client = get_robokit_client()
+    try:
+        params = {"move_angle": move_angle, "loc_mode": loc_mode}
+        if speed_w is not None:
+            params["speed_w"] = speed_w
+        result = await client.call_navigation(3056, params)
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/navigation/spin")
+async def spin(body: dict = Body(..., embed=False)):
+    """托盘旋转 (API 3057，端口19206)。body 见接口文档，如 {"angle": 1.57}。"""
+    client = get_robokit_client()
+    try:
+        result = await client.call_navigation(3057, body)
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/navigation/circular")
+async def circular(body: dict = Body(..., embed=False)):
+    """圆弧运动 (API 3058，端口19206)。body 见接口文档。"""
+    client = get_robokit_client()
+    try:
+        result = await client.call_navigation(3058, body)
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/navigation/path-enable")
+async def path_enable(body: dict = Body(..., embed=False)):
+    """启用和禁用线路 (API 3059，端口19206)。body 见接口文档。"""
+    client = get_robokit_client()
+    try:
+        result = await client.call_navigation(3059, body)
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/navigation/clear-target-list")
+async def clear_target_list():
+    """清除指定导航路径 (API 3067，端口19206)"""
+    client = get_robokit_client()
+    try:
+        result = await client.call_navigation(3067, None)
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/navigation/clear-by-task-id")
+async def clear_by_task_id(task_id: str = Body(..., embed=True)):
+    """根据任务id清除指定导航路径 (API 3068，端口19206)"""
+    client = get_robokit_client()
+    try:
+        result = await client.call_navigation(3068, {"task_id": task_id})
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/navigation/tasklist-status")
+async def get_tasklist_status():
+    """查询机器人任务链 (API 3101，端口19206)"""
+    client = get_robokit_client()
+    try:
+        result = await client.call_navigation(3101, None)
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/navigation/tasklist-list")
+async def get_tasklist_list():
+    """查询机器人所有任务链 (API 3115，端口19206)"""
+    client = get_robokit_client()
+    try:
+        result = await client.call_navigation(3115, None)
+        check_response(result)
+        return result
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/navigation/tasklist-execute")
+async def execute_tasklist(name: str = Body(..., embed=True)):
+    """执行预存任务链 (API 3106，端口19206)"""
+    client = get_robokit_client()
+    try:
+        result = await client.call_navigation(3106, {"name": name})
         check_response(result)
         return result
     except RobokitError as e:

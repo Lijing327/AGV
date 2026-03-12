@@ -17,6 +17,9 @@ _last_import_meta: dict | None = None
 _robokit_client: RobokitClient | None = None
 _robokit_host: str = "172.16.11.211"  # 默认机器人IP（测试用，后续会扩展多车）
 
+# 机器人推送 API 最新位置（x, y, angle, vehicle_id 等）
+_robot_push_position: dict = {}
+
 
 def get_map_repo() -> MapRepository:
     global _map_repo
@@ -160,6 +163,32 @@ def update_robokit_host(host: str) -> None:
     _robokit_host = host
     # 清除旧客户端，下次调用get_robokit_client时会创建新客户端
     _robokit_client = None
+
+
+def _on_robot_push(data: dict) -> None:
+    """机器人推送数据回调，更新最新位置"""
+    global _robot_push_position
+    _robot_push_position = {
+        "x": data.get("x"),
+        "y": data.get("y"),
+        "angle": data.get("angle", data.get("theta")),
+        "vehicle_id": data.get("vehicle_id", ""),
+        "current_station": data.get("current_station", ""),
+        "task_status": data.get("task_status"),
+        "battery_level": data.get("battery_level"),
+        "create_on": data.get("create_on"),
+    }
+
+
+def get_robot_push_position() -> dict:
+    """获取机器人推送 API 最新位置数据"""
+    return dict(_robot_push_position)
+
+
+def clear_robot_push_position() -> None:
+    """清空机器人推送位置（断开连接时调用）"""
+    global _robot_push_position
+    _robot_push_position = {}
 
 
 def get_robokit_client(host: str | None = None) -> RobokitClient:

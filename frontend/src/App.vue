@@ -61,7 +61,7 @@
     <main class="app-main">
       <!-- 地图区域 -->
       <div class="map-area">
-        <MapCanvas :mapData="mapData" :fleetData="fleetData" />
+        <MapCanvas :mapData="mapData" :fleetData="fleetData" :robotPosition="robotPosition" />
       </div>
 
       <!-- 右侧控制面板 -->
@@ -106,7 +106,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import * as api from './api'
 import MapCanvas from './components/MapCanvas.vue'
 import SimPanel from './components/SimPanel.vue'
@@ -121,6 +121,8 @@ const fleetData = ref({ agvs: [] })
 const tasks = ref([])
 const logs = ref([])
 const pollTimer = ref(null)
+const robotPollTimer = ref(null)
+const robotPosition = ref(null)
 const systemOnline = ref(false)
 
 const latestLog = computed(() => {
@@ -234,17 +236,43 @@ function stopPoll() {
   }
 }
 
+async function loadRobotPosition() {
+  const pos = await api.robokitPosition()
+  robotPosition.value = pos && (pos.x != null || pos.y != null) ? pos : null
+}
+
+function startRobotPoll() {
+  if (robotPollTimer.value) return
+  loadRobotPosition()
+  robotPollTimer.value = setInterval(loadRobotPosition, 400)
+}
+
+function stopRobotPoll() {
+  if (robotPollTimer.value) {
+    clearInterval(robotPollTimer.value)
+    robotPollTimer.value = null
+  }
+  robotPosition.value = null
+}
+
+watch(activeMode, (mode) => {
+  if (mode === 'robot') startRobotPoll()
+  else stopRobotPoll()
+})
+
 onMounted(async () => {
   updateClock()
   clockTimer = setInterval(updateClock, 1000)
   await loadMap()
   await loadFleet()
   await loadTasks()
+  if (activeMode.value === 'robot') startRobotPoll()
   log('系统已初始化，地图与车队数据已加载')
 })
 
 onUnmounted(() => {
   stopPoll()
+  stopRobotPoll()
   if (clockTimer) clearInterval(clockTimer)
 })
 </script>
@@ -282,7 +310,7 @@ onUnmounted(() => {
   --transition: 0.2s ease;
   --header-h: 52px;
   --status-h: 32px;
-  --panel-w: 420px;
+  --panel-w: 460px;
 }
 </style>
 

@@ -77,7 +77,9 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   mapData: { type: Object, default: () => ({ nodes: [], edges: [] }) },
-  fleetData: { type: Object, default: () => ({ agvs: [] }) }
+  fleetData: { type: Object, default: () => ({ agvs: [] }) },
+  /** 机器人实时位置（来自推送 API），含 x, y, angle, vehicle_id */
+  robotPosition: { type: Object, default: null },
 })
 
 const AGV_R = 14
@@ -486,6 +488,7 @@ function render() {
 
   // 7. AGV 层
   if (layers.agvs) {
+    // 7a. 模拟器 AGV（按节点）
     agvs.forEach(agv => {
       const n = nodeMap[agv.current_node]
       if (!n) return
@@ -535,11 +538,59 @@ function render() {
         }
       }
     })
+
+    // 7b. 真实机器人（按推送 API 的 x,y 坐标）
+    const rp = props.robotPosition
+    if (rp && rp.x != null && rp.y != null) {
+      const px = toX(rp.x)
+      const py = toY(rp.y)
+      const agvColor = '#10b981'
+
+      ctx.fillStyle = agvColor + '25'
+      ctx.beginPath()
+      ctx.arc(px, py, AGV_R + 4, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = agvColor
+      ctx.beginPath()
+      ctx.arc(px, py, AGV_R, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)'
+      ctx.lineWidth = 2
+      ctx.stroke()
+
+      ctx.fillStyle = '#fff'
+      ctx.font = "bold 11px 'Inter', sans-serif"
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(rp.vehicle_id || 'Robot', px, py)
+
+      // 方向箭头（angle 为 rad，世界坐标系）
+      const angle = rp.angle != null ? -rp.angle : 0
+      const arrowLen = AGV_R + 18
+      const endX = px + Math.cos(angle) * arrowLen
+      const endY = py + Math.sin(angle) * arrowLen
+      ctx.strokeStyle = '#f59e0b'
+      ctx.lineWidth = 2.5
+      ctx.beginPath()
+      ctx.moveTo(px + Math.cos(angle) * AGV_R, py + Math.sin(angle) * AGV_R)
+      ctx.lineTo(endX, endY)
+      ctx.stroke()
+      const headLen = 5
+      const headAngle = Math.PI / 6
+      ctx.beginPath()
+      ctx.moveTo(endX, endY)
+      ctx.lineTo(endX - headLen * Math.cos(angle - headAngle), endY - headLen * Math.sin(angle - headAngle))
+      ctx.moveTo(endX, endY)
+      ctx.lineTo(endX - headLen * Math.cos(angle + headAngle), endY - headLen * Math.sin(angle + headAngle))
+      ctx.stroke()
+    }
   }
 }
 
 watch(
-  [() => props.mapData, () => props.fleetData, zoomLevel, panX, panY, layers],
+  [() => props.mapData, () => props.fleetData, () => props.robotPosition, zoomLevel, panX, panY, layers],
   () => render(),
   { deep: true }
 )

@@ -385,41 +385,178 @@
 
         <!-- ===== 导航 ===== -->
         <div v-if="activeGroup === 'navigation'" class="group-content">
-          <!-- 路径导航 -->
-          <div class="card">
-            <div class="card-head"><h4>路径导航</h4></div>
-            <div class="input-row-2">
-              <div class="form-field compact">
-                <label>路径 ID</label>
-                <input v-model.number="navForm.pathId" type="number" min="0" placeholder="路径ID" />
+          <!-- 指定路径导航：最终使用接口（置顶，多段编辑） -->
+          <div class="card priority-card">
+            <div class="card-head"><h4>指定路径 (3066) — 最终使用接口</h4></div>
+            <p class="card-hint">向机器人发送站点序列，按序列依次经过不停留；每段必填 source_id、id、task_id（不可重复）；可带 operation（如 JackHeight）、jack_height。<strong>source_id 与 id 之间必须有直接相连的线路，不可跳点。</strong></p>
+            <p class="card-hint card-warn">下发前请先在「控制」里点击<strong>「抢占控制」</strong>，抢占控制权后即可直接调用本接口。若小车未动：① 第一段 source_id 填站点名表示小车须<strong>已在该站点</strong>，否则第一段可填 <code>SELF_POSITION</code> 表示从当前位置出发；② 确认地图上站点之间有直接线路。</p>
+            <p class="card-hint card-error">若报 <strong>52702 路径规划失败</strong>：① 确认地图上 <code>source_id</code> 与 <code>id</code> 两站点之间有<strong>直接连线</strong>（不可跳点）；② <code>jack_height</code> 单位为<strong>米</strong>，如 0.2 表示 0.2m，勿填 8.2 等过大数值；③ 确认地图已加载、站点 ID 与地图一致。</p>
+            <div class="multi-segment-label">多段编辑</div>
+            <div v-for="(seg, idx) in navForm.specifiedSegments" :key="idx" class="specified-segment">
+              <div class="segment-head">第 {{ idx + 1 }} 段</div>
+              <div class="input-row-3">
+                <div class="form-field compact">
+                  <label>source_id</label>
+                  <input v-model="seg.source_id" placeholder="如 LM1" />
+                </div>
+                <div class="form-field compact">
+                  <label>id</label>
+                  <input v-model="seg.id" placeholder="如 LM2" />
+                </div>
+                <div class="form-field compact">
+                  <label>task_id</label>
+                  <input v-model="seg.task_id" placeholder="必填，唯一" />
+                </div>
+              </div>
+              <div class="input-row-3">
+                <div class="form-field compact">
+                  <label>operation (可选)</label>
+                  <select v-model="seg.operation">
+                    <option value="">无</option>
+                    <option value="JackHeight">JackHeight</option>
+                    <option value="JackLoad">JackLoad</option>
+                    <option value="JackUnload">JackUnload</option>
+                    <option value="Wait">Wait</option>
+                  </select>
+                </div>
+                <div class="form-field compact">
+                  <label>jack_height (可选)</label>
+                  <input v-model.number="seg.jack_height" type="number" step="0.01" placeholder="单位 m，如 0.2" title="单位：米，如 0.2 表示 0.2m" />
+                </div>
+                <div class="form-field compact segment-actions">
+                  <label>&nbsp;</label>
+                  <button type="button" class="btn btn-ghost-sm small" @click="removeSpecifiedSegment(idx)" :disabled="navForm.specifiedSegments.length <= 1">删除</button>
+                </div>
               </div>
             </div>
             <div class="btn-row-2">
-              <button class="btn btn-blue" @click="handlePathNavigation" :disabled="loading">路径导航(3051)</button>
-              <button class="btn btn-blue-outline" @click="handleSpecifiedPathNavigation" :disabled="loading">指定路径(3066)</button>
+              <button type="button" class="btn btn-ghost-sm" @click="addSpecifiedSegment" :disabled="loading">+ 添加一段</button>
+              <button type="button" class="btn btn-blue full" @click="handleSpecifiedPathNavigation" :disabled="loading">指定路径(3066)</button>
             </div>
           </div>
 
-          <!-- 点/区域导航 -->
+          <!-- 路径导航 (仅单车测试) -->
           <div class="card">
-            <div class="card-head"><h4>目标导航</h4></div>
-            <div class="input-row-2">
+            <div class="card-head"><h4>路径导航 (3051)</h4></div>
+            <p class="card-hint"><strong>仅用于单车/任务链测试</strong>，不能用于调度场景（否则速度不连续、不跟随路径等危险）。给定起点、终点站点名，机器人沿固定路径运行；起点可为 SELF_POSITION。</p>
+            <p class="card-hint card-error">若<strong>路径导航失败</strong>或报 52702：① 确认地图上起点与终点<strong>有直接连线</strong>；② 若小车不在起点，起点填 <code>SELF_POSITION</code>；③ task_id 可选，若填须唯一。</p>
+            <div class="input-row-3">
               <div class="form-field compact">
-                <label>目标</label>
-                <input v-model="navForm.target" placeholder="如 P1" />
+                <label>起点 source_id</label>
+                <input v-model="navForm.sourceId" placeholder="如 LM2 或 SELF_POSITION" />
               </div>
               <div class="form-field compact">
-                <label>类型</label>
-                <select v-model="navForm.type">
-                  <option value="point">点</option>
-                  <option value="area">区域</option>
+                <label>终点 id</label>
+                <input v-model="navForm.targetId" placeholder="如 LM1" />
+              </div>
+              <div class="form-field compact">
+                <label>task_id (可选)</label>
+                <input v-model="navForm.taskId" placeholder="可选" />
+              </div>
+            </div>
+            <button class="btn btn-blue full" @click="handlePathNavigation" :disabled="loading">路径导航(3051)</button>
+          </div>
+
+          <!-- 导航控制：停止/暂停/继续/取消 -->
+          <div class="card">
+            <div class="card-head"><h4>导航控制</h4></div>
+            <div class="btn-row-2">
+              <button class="btn btn-red" @click="handleStopNavigation" :disabled="loading">停止导航(3052)</button>
+              <button class="btn btn-ghost-sm" @click="handlePauseNavigation" :disabled="loading">暂停(3001)</button>
+              <button class="btn btn-ghost-sm" @click="handleResumeNavigation" :disabled="loading">继续(3002)</button>
+              <button class="btn btn-ghost-sm" @click="handleCancelNavigation" :disabled="loading">取消(3003)</button>
+            </div>
+          </div>
+
+          <!-- 转动 (3056) -->
+          <div class="card">
+            <div class="card-head"><h4>转动 (3056)</h4></div>
+            <p class="card-hint">固定角速度旋转固定角度，角度单位 rad</p>
+            <div class="input-row-3">
+              <div class="form-field compact">
+                <label>角度 (rad)</label>
+                <input v-model.number="navForm.moveAngle" type="number" step="0.01" placeholder="如 1.57" />
+              </div>
+              <div class="form-field compact">
+                <label>角速度 (rad/s)</label>
+                <input v-model.number="navForm.speedW" type="number" step="0.1" placeholder="可选" />
+              </div>
+              <div class="form-field compact">
+                <label>定位模式</label>
+                <select v-model.number="navForm.locMode">
+                  <option :value="0">里程</option>
+                  <option :value="1">激光</option>
                 </select>
               </div>
             </div>
-            <div class="btn-row-2">
-              <button class="btn btn-blue" @click="handleMoveTo" :disabled="loading">执行导航</button>
-              <button class="btn btn-red" @click="handleStopNavigation" :disabled="loading">停止导航</button>
+            <button class="btn btn-blue-outline full" @click="handleTurn" :disabled="loading">执行转动</button>
+          </div>
+
+          <!-- 托盘旋转 (3057) -->
+          <div class="card">
+            <div class="card-head"><h4>托盘旋转 (3057)</h4></div>
+            <div class="input-row-2">
+              <div class="form-field compact">
+                <label>角度 (rad)</label>
+                <input v-model.number="navForm.spinAngle" type="number" step="0.01" placeholder="如 1.57" />
+              </div>
+              <button class="btn btn-blue-outline" style="align-self:flex-end" @click="handleSpin" :disabled="loading">执行</button>
             </div>
+          </div>
+
+          <!-- 圆弧运动 (3058) / 启用禁用线路 (3059) -->
+          <div class="card">
+            <div class="card-head"><h4>圆弧(3058) / 线路(3059)</h4></div>
+            <p class="card-hint">JSON 格式，见接口文档。圆弧示例: {"radius": 1, "angle": 1.57}</p>
+            <div class="form-field">
+              <label>请求体 JSON</label>
+              <textarea v-model="navForm.genericNavJson" rows="3" placeholder='{"key": "value"}' class="json-textarea"></textarea>
+            </div>
+            <div class="btn-row-2">
+              <button class="btn btn-ghost-sm" @click="handleCircular" :disabled="loading">圆弧运动(3058)</button>
+              <button class="btn btn-ghost-sm" @click="handlePathEnable" :disabled="loading">启用禁用线路(3059)</button>
+            </div>
+          </div>
+
+          <!-- 清除路径 -->
+          <div class="card">
+            <div class="card-head"><h4>清除导航路径</h4></div>
+            <div class="input-row-2">
+              <div class="form-field compact">
+                <label>task_id (3068)</label>
+                <input v-model="navForm.clearTaskId" placeholder="按任务id清除时填写" />
+              </div>
+              <div class="btn-row-2">
+                <button class="btn btn-ghost-sm" @click="handleClearTargetList" :disabled="loading">清除指定路径(3067)</button>
+                <button class="btn btn-ghost-sm" @click="handleClearByTaskId" :disabled="loading">按 task_id 清除(3068)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 任务链 -->
+          <div class="card">
+            <div class="card-head"><h4>任务链 (3101/3115/3106)</h4></div>
+            <div class="btn-row-2" style="margin-bottom:8px">
+              <button class="btn btn-ghost-sm" @click="handleGetTasklistStatus" :disabled="loading">查询任务链状态(3101)</button>
+              <button class="btn btn-ghost-sm" @click="handleGetTasklistList" :disabled="loading">查询所有任务链(3115)</button>
+            </div>
+            <div class="input-row-2">
+              <div class="form-field compact">
+                <label>预存任务链名称</label>
+                <input v-model="navForm.tasklistName" placeholder="执行(3106)时填写" />
+              </div>
+              <button class="btn btn-blue-outline" @click="handleExecuteTasklist" :disabled="loading">执行预存任务链(3106)</button>
+            </div>
+            <div v-if="tasklistResult" class="tasklist-result">
+              <div v-if="tasklistStatusHint" class="tasklist-hint">{{ tasklistStatusHint }}</div>
+              <pre>{{ tasklistResult }}</pre>
+            </div>
+          </div>
+
+          <!-- 获取路径 (3053) -->
+          <div class="card">
+            <div class="card-head"><h4>获取路径导航的路径 (3053)</h4></div>
+            <button class="btn btn-ghost full" @click="handleGetTargetPath" :disabled="loading">获取当前路径</button>
           </div>
 
           <!-- 导航状态 -->
@@ -547,7 +684,18 @@ const moveForm = ref({ vx: 0.5, vy: 0, w: 0 })
 const controlNickname = ref('agv-web')
 const relocateForm = ref({ x: 0, y: 0, angleDeg: 0 })
 const translateForm = ref({ dist: 1, vx: null, vy: null, mode: 0 })
-const navForm = ref({ target: '', type: 'point', pathId: 1 })
+const navForm = ref({
+  target: '', type: 'point',
+  sourceId: 'SELF_POSITION', targetId: 'LM1', taskId: '',
+  specifiedSegments: [
+    { source_id: 'LM1', id: 'LM2', task_id: '12344321', operation: '', jack_height: '' },
+    { source_id: 'LM2', id: 'AP1', task_id: '12344322', operation: 'JackHeight', jack_height: 0.2 },
+  ],
+  moveAngle: 1.57, speedW: null, locMode: 0,
+  spinAngle: 1.57, genericNavJson: '{}', clearTaskId: '', tasklistName: '',
+})
+const tasklistResult = ref(null)
+const tasklistStatusHint = ref('')
 const simpleBattery = ref(false)
 const logs = ref([])
 
@@ -849,12 +997,34 @@ async function handleEmergencyStop() {
   finally { loading.value = false }
 }
 
-async function handleMoveTo() {
+async function handleQuickRelocate() {
   loading.value = true
   try {
-    const result = await api.robokitMoveTo(navForm.value.target, navForm.value.type)
-    if (result?.ret_code === 0) log(`导航到 ${navForm.value.type}: ${navForm.value.target}`, false, true)
-    else log('导航指令失败', true)
+    await loadLocation()
+    const x = locationInfo.value.x ?? 0
+    const y = locationInfo.value.y ?? 0
+    const angleRad = (locationInfo.value.angle ?? 0) * 1
+    const result = await api.robokitRelocate(x, y, angleRad)
+    if (result?.ret_code === 0) {
+      log(`已发起重定位 (${x.toFixed(2)}, ${y.toFixed(2)})，请等待约10-30秒定位完成后再执行导航`, false, true)
+      try { await api.robokitConfirmLocation() } catch (_) {}
+    } else { log('重定位失败', true) }
+  } catch (e) { log('重定位错误: ' + formatRobokitError(e.message), true) }
+  finally { loading.value = false }
+}
+
+async function handleMoveTo() {
+  const target = navForm.value.target?.trim()
+  if (!target) { log('请输入目标', true); return }
+  loading.value = true
+  try {
+    // 导航需在自动模式下执行，先尝试切换（部分固件已弃用 4000 则忽略失败）
+    try {
+      await api.robokitSetMode(1)
+    } catch (_) { /* 40009 等忽略 */ }
+    const result = await api.robokitMoveTo(target, navForm.value.type)
+    if (result?.ret_code === 0) log(`导航到 ${navForm.value.type}: ${target}`, false, true)
+    else log(`导航指令失败: ${result?.err_msg || 'ret_code=' + (result?.ret_code ?? '?')}`, true)
   } catch (e) { log('导航错误: ' + e.message, true) }
   finally { loading.value = false }
 }
@@ -862,19 +1032,80 @@ async function handleMoveTo() {
 async function handlePathNavigation() {
   loading.value = true
   try {
-    const result = await api.robokitPathNavigation(navForm.value.pathId)
-    if (result?.ret_code === 0) log(`路径导航(3051) path_id=${navForm.value.pathId}`, false, true)
+    const sourceId = (navForm.value.sourceId || '').trim()
+    const targetId = (navForm.value.targetId || '').trim()
+    if (!sourceId || !targetId) { log('请填写起点 source_id 与终点 id', true); return }
+    const taskId = (navForm.value.taskId || '').trim() || null
+    const result = await api.robokitPathNavigation(sourceId, targetId, taskId)
+    if (result?.ret_code === 0) log(`路径导航(3051) ${sourceId} → ${targetId}`, false, true)
     else log('路径导航失败', true)
   } catch (e) { log('路径导航错误: ' + e.message, true) }
   finally { loading.value = false }
 }
 
+function addSpecifiedSegment() {
+  const segments = navForm.value.specifiedSegments
+  navForm.value.specifiedSegments = [
+    ...segments,
+    { source_id: '', id: '', task_id: '', operation: '', jack_height: '' },
+  ]
+}
+
+function removeSpecifiedSegment(idx) {
+  if (navForm.value.specifiedSegments.length <= 1) return
+  const segments = [...navForm.value.specifiedSegments]
+  segments.splice(idx, 1)
+  navForm.value.specifiedSegments = segments
+}
+
 async function handleSpecifiedPathNavigation() {
   loading.value = true
   try {
-    const result = await api.robokitSpecifiedPathNavigation(navForm.value.pathId)
-    if (result?.ret_code === 0) log(`指定路径导航(3066) path_id=${navForm.value.pathId}`, false, true)
-    else log('指定路径导航失败', true)
+    const list = []
+    for (const seg of navForm.value.specifiedSegments) {
+      const source_id = (seg.source_id || '').trim()
+      const id = (seg.id || '').trim()
+      const task_id = (seg.task_id || '').trim()
+      if (!source_id || !id || !task_id) {
+        log('指定路径(3066) 每段须填写 source_id、id、task_id', true)
+        return
+      }
+      const item = { source_id, id, task_id }
+      if (seg.operation && seg.operation !== '') item.operation = seg.operation
+      if (seg.jack_height != null && seg.jack_height !== '' && Number.isFinite(Number(seg.jack_height))) {
+        item.jack_height = Number(seg.jack_height)
+      }
+      list.push(item)
+    }
+    for (let i = 0; i < list.length - 1; i++) {
+      const currEnd = list[i].id
+      const nextStart = list[i + 1].source_id
+      if (currEnd !== nextStart) {
+        log(`第 ${i + 1} 段终点「${currEnd}」与第 ${i + 2} 段起点「${nextStart}」不一致，线路不连续，小车可能不执行后续段或报错`, true)
+        log('请将下一段的 source_id 改为上一段的 id，保证首尾相连', true)
+      }
+    }
+    const requestBody = { move_task_list: list }
+    const requestStr = JSON.stringify(requestBody, null, 2)
+    log('指定路径(3066) 请求体:', false, false)
+    log(requestStr, false, false)
+    const result = await api.robokitSpecifiedPathNavigation(list)
+    if (result?.ret_code === 0) {
+      log(`指定路径(3066) 已下发 ${list.length} 段`, false, true)
+      log('机器人响应: ' + JSON.stringify(result), false, false)
+      try {
+        const status = await api.robokitGetTasklistStatus()
+        if (status && (status.task_status !== undefined || status.task_type !== undefined)) {
+          const st = status.task_status ?? status.status ?? '-'
+          const type = status.task_type ?? '-'
+          log(`任务状态: task_type=${type} task_status=${st}`, false, false)
+        }
+      } catch (_) { /* 仅辅助，忽略 */ }
+      log('若小车未动: 请确认已抢占控制权，并确认站点间有直接线路', false, false)
+    } else {
+      log(`指定路径失败: ret_code=${result?.ret_code ?? '?'} ${result?.err_msg || ''}`, true)
+      if (result) log('完整响应: ' + JSON.stringify(result), true, false)
+    }
   } catch (e) { log('指定路径导航错误: ' + e.message, true) }
   finally { loading.value = false }
 }
@@ -886,6 +1117,170 @@ async function handleStopNavigation() {
     if (result?.ret_code === 0) log('导航已停止', false, true)
     else log('停止导航失败', true)
   } catch (e) { log('停止导航错误: ' + e.message, true) }
+  finally { loading.value = false }
+}
+
+async function handlePauseNavigation() {
+  loading.value = true
+  try {
+    const result = await api.robokitPauseNavigation()
+    if (result?.ret_code === 0) log('已暂停当前导航(3001)', false, true)
+    else log('暂停失败', true)
+  } catch (e) { log('暂停导航错误: ' + e.message, true) }
+  finally { loading.value = false }
+}
+
+async function handleResumeNavigation() {
+  loading.value = true
+  try {
+    const result = await api.robokitResumeNavigation()
+    if (result?.ret_code === 0) log('已继续当前导航(3002)', false, true)
+    else log('继续失败', true)
+  } catch (e) { log('继续导航错误: ' + e.message, true) }
+  finally { loading.value = false }
+}
+
+async function handleCancelNavigation() {
+  loading.value = true
+  try {
+    const result = await api.robokitCancelNavigation()
+    if (result?.ret_code === 0) log('已取消当前导航(3003)', false, true)
+    else log('取消失败', true)
+  } catch (e) { log('取消导航错误: ' + e.message, true) }
+  finally { loading.value = false }
+}
+
+async function handleTurn() {
+  loading.value = true
+  try {
+    const angle = Number(navForm.value.moveAngle)
+    if (!Number.isFinite(angle)) { log('请填写有效角度', true); return }
+    const speedW = navForm.value.speedW != null && navForm.value.speedW !== '' ? Number(navForm.value.speedW) : null
+    const result = await api.robokitTurn(angle, speedW, navForm.value.locMode ?? 0)
+    if (result?.ret_code === 0) log(`转动 ${angle} rad`, false, true)
+    else log('转动失败', true)
+  } catch (e) { log('转动错误: ' + e.message, true) }
+  finally { loading.value = false }
+}
+
+async function handleSpin() {
+  loading.value = true
+  try {
+    const angle = Number(navForm.value.spinAngle)
+    if (!Number.isFinite(angle)) { log('请填写有效角度', true); return }
+    const result = await api.robokitSpin({ angle })
+    if (result?.ret_code === 0) log(`托盘旋转 ${angle} rad`, false, true)
+    else log('托盘旋转失败', true)
+  } catch (e) { log('托盘旋转错误: ' + e.message, true) }
+  finally { loading.value = false }
+}
+
+async function handleCircular() {
+  loading.value = true
+  try {
+    const body = JSON.parse(navForm.value.genericNavJson || '{}')
+    const result = await api.robokitCircular(body)
+    if (result?.ret_code === 0) log('圆弧运动已下发(3058)', false, true)
+    else log('圆弧运动失败', true)
+  } catch (e) {
+    if (e instanceof SyntaxError) log('JSON 格式错误', true)
+    else log('圆弧运动错误: ' + e.message, true)
+  }
+  finally { loading.value = false }
+}
+
+async function handlePathEnable() {
+  loading.value = true
+  try {
+    const body = JSON.parse(navForm.value.genericNavJson || '{}')
+    const result = await api.robokitPathEnable(body)
+    if (result?.ret_code === 0) log('启用/禁用线路已下发(3059)', false, true)
+    else log('启用/禁用线路失败', true)
+  } catch (e) {
+    if (e instanceof SyntaxError) log('JSON 格式错误', true)
+    else log('启用/禁用线路错误: ' + e.message, true)
+  }
+  finally { loading.value = false }
+}
+
+async function handleClearTargetList() {
+  loading.value = true
+  try {
+    const result = await api.robokitClearTargetList()
+    if (result?.ret_code === 0) log('已清除指定导航路径(3067)', false, true)
+    else log('清除失败', true)
+  } catch (e) { log('清除路径错误: ' + e.message, true) }
+  finally { loading.value = false }
+}
+
+async function handleClearByTaskId() {
+  const taskId = (navForm.value.clearTaskId || '').trim()
+  if (!taskId) { log('请填写 task_id', true); return }
+  loading.value = true
+  try {
+    const result = await api.robokitClearByTaskId(taskId)
+    if (result?.ret_code === 0) log(`已按 task_id 清除(3068): ${taskId}`, false, true)
+    else log('清除失败', true)
+  } catch (e) { log('按 task_id 清除错误: ' + e.message, true) }
+  finally { loading.value = false }
+}
+
+const TASKLIST_STATUS_MAP = {
+  0: '无/空闲',
+  1: '运行中',
+  2: '完成',
+  3: '失败',
+  4: '取消',
+  5: '暂停',
+  6: '已结束/完成(以接口文档为准)',
+}
+async function handleGetTasklistStatus() {
+  loading.value = true
+  tasklistStatusHint.value = ''
+  try {
+    const data = await api.robokitGetTasklistStatus()
+    tasklistResult.value = data != null ? JSON.stringify(data, null, 2) : null
+    if (data != null) {
+      log('已查询任务链状态(3101)', false, true)
+      const ts = data?.tasklist_status
+      if (ts && typeof ts.taskListStatus === 'number') {
+        const s = ts.taskListStatus
+        tasklistStatusHint.value = `taskListStatus=${s} (${TASKLIST_STATUS_MAP[s] ?? '见接口文档'})`
+      }
+    }
+  } catch (e) { log('查询任务链状态错误: ' + e.message, true) }
+  finally { loading.value = false }
+}
+
+async function handleGetTasklistList() {
+  loading.value = true
+  try {
+    const data = await api.robokitGetTasklistList()
+    tasklistResult.value = data != null ? JSON.stringify(data, null, 2) : null
+    if (data != null) log('已查询所有任务链(3115)', false, true)
+  } catch (e) { log('查询任务链列表错误: ' + e.message, true) }
+  finally { loading.value = false }
+}
+
+async function handleExecuteTasklist() {
+  const name = (navForm.value.tasklistName || '').trim()
+  if (!name) { log('请填写预存任务链名称', true); return }
+  loading.value = true
+  try {
+    const result = await api.robokitExecuteTasklist(name)
+    if (result?.ret_code === 0) log(`已执行预存任务链(3106): ${name}`, false, true)
+    else log('执行任务链失败', true)
+  } catch (e) { log('执行任务链错误: ' + e.message, true) }
+  finally { loading.value = false }
+}
+
+async function handleGetTargetPath() {
+  loading.value = true
+  try {
+    const data = await api.robokitGetTargetPath()
+    tasklistResult.value = data != null ? JSON.stringify(data, null, 2) : null
+    if (data != null) log('已获取路径(3053)', false, true)
+  } catch (e) { log('获取路径错误: ' + e.message, true) }
   finally { loading.value = false }
 }
 
@@ -977,10 +1372,17 @@ onUnmounted(() => {
 
 /* 内容区 */
 .panel-content {
-  flex: 1; overflow-y: auto; padding: 12px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+  min-width: 0;
 }
 .group-content {
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
   animation: fadeSlide 0.2s ease;
 }
 @keyframes fadeSlide {
@@ -994,6 +1396,7 @@ onUnmounted(() => {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 14px;
+  min-width: 0;
 }
 .card-head {
   display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
@@ -1003,6 +1406,15 @@ onUnmounted(() => {
 }
 .card-hint {
   font-size: 11px; color: var(--text-muted); margin: -8px 0 10px; line-height: 1.5;
+}
+.card-hint.card-warn {
+  color: var(--yellow); margin-top: 6px; margin-bottom: 8px;
+}
+.card-hint.card-error {
+  color: var(--red); margin-top: 4px; margin-bottom: 8px; font-size: 11px;
+}
+.card-hint code {
+  background: var(--bg-overlay); padding: 1px 6px; border-radius: 4px; font-size: 11px;
 }
 .priority-card { border-color: rgba(59, 130, 246, 0.3); }
 
@@ -1071,14 +1483,40 @@ onUnmounted(() => {
   padding: 7px 10px; background: var(--bg-input); border: 1px solid var(--border);
   border-radius: var(--radius-sm); color: var(--text-primary);
   font-size: 13px; font-family: var(--font-mono); transition: border-color var(--transition);
+  box-sizing: border-box; min-width: 0; width: 100%;
 }
 .form-field input:focus, .form-field select:focus { outline: none; border-color: var(--blue); }
 .form-field input::placeholder { color: var(--text-muted); }
 .form-field select { cursor: pointer; }
+.json-textarea {
+  width: 100%; padding: 8px 10px; background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-primary); font-size: 12px; font-family: var(--font-mono);
+  resize: vertical; min-height: 60px;
+}
+.tasklist-result {
+  margin-top: 10px; padding: 10px; background: var(--bg-overlay); border-radius: var(--radius-sm);
+  max-height: 200px; overflow: auto;
+}
+.tasklist-hint {
+  font-size: 12px; color: var(--cyan); margin-bottom: 8px; font-weight: 500;
+}
+.tasklist-result pre { margin: 0; font-size: 11px; color: var(--text-muted); white-space: pre-wrap; word-break: break-all; }
 
-.input-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-.input-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-.input-row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.specified-segment {
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.specified-segment:last-of-type { border-bottom: none; }
+.multi-segment-label {
+  font-size: 12px; font-weight: 600; color: var(--blue);
+  margin-bottom: 8px; padding-bottom: 4px;
+}
+.segment-head { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; }
+.segment-actions { display: flex; align-items: flex-end; }
+.btn.small { padding: 4px 8px; font-size: 11px; }
+
+.input-row-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-bottom: 10px; }
+.input-row-3 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-bottom: 10px; }
+.input-row-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
 
 .ctrl-form-row { margin-bottom: 10px; }
 .ctrl-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }

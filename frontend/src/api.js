@@ -78,6 +78,12 @@ export async function robokitStatus() {
   return r.ok ? r.json() : null
 }
 
+/** 获取机器人实时位置（来自推送 API 19301） */
+export async function robokitPosition() {
+  const r = await fetch(`${API_BASE}/robokit/position`)
+  return r.ok ? r.json() : null
+}
+
 // 机器人状态API
 export async function robokitGetInfo() {
   const r = await fetch(`${API_BASE}/robokit/robot/info`)
@@ -230,21 +236,27 @@ export async function robokitEmergencyStop() {
 }
 
 // 机器人导航API
-export async function robokitPathNavigation(pathId) {
+/** 路径导航 (API 3051)：给定起点、终点站点名，机器人沿固定路径运行。 */
+export async function robokitPathNavigation(sourceId, targetId, taskId = null) {
+  const body = { source_id: sourceId, target_id: targetId }
+  if (taskId != null && taskId !== '') body.task_id = taskId
   const r = await fetch(`${API_BASE}/robokit/navigation/path`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path_id: pathId }),
+    body: JSON.stringify(body),
   })
   return r.ok ? r.json() : null
 }
 
-/** 指定路径导航 (API 3066，端口19206) */
-export async function robokitSpecifiedPathNavigation(pathId) {
+/**
+ * 指定路径导航 (API 3066)：发送站点序列 move_task_list，每段必填 id、source_id、task_id。
+ * @param {Array<{source_id: string, id: string, task_id: string, ...}>} moveTaskList
+ */
+export async function robokitSpecifiedPathNavigation(moveTaskList) {
   const r = await fetch(`${API_BASE}/robokit/navigation/specified-path`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path_id: pathId }),
+    body: JSON.stringify({ move_task_list: moveTaskList }),
   })
   const data = await r.json().catch(() => ({}))
   if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
@@ -273,13 +285,145 @@ export async function robokitStopNavigation() {
   return data
 }
 
+/** 暂停当前导航 (API 3001) */
+export async function robokitPauseNavigation() {
+  const r = await fetch(`${API_BASE}/robokit/navigation/pause`, { method: 'POST' })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+/** 继续当前导航 (API 3002) */
+export async function robokitResumeNavigation() {
+  const r = await fetch(`${API_BASE}/robokit/navigation/resume`, { method: 'POST' })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+/** 取消当前导航 (API 3003) */
+export async function robokitCancelNavigation() {
+  const r = await fetch(`${API_BASE}/robokit/navigation/cancel`, { method: 'POST' })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+/** 获取路径导航的路径 (API 3053)，body 可选 */
+export async function robokitGetTargetPath(body = null) {
+  const r = await fetch(`${API_BASE}/robokit/navigation/target-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {}),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+/** 转动 (API 3056)：角度 rad，角速度 rad/s 可选 */
+export async function robokitTurn(moveAngle, speedW = null, locMode = 0) {
+  const body = { move_angle: Number(moveAngle), loc_mode: locMode }
+  if (speedW != null) body.speed_w = Number(speedW)
+  const r = await fetch(`${API_BASE}/robokit/navigation/turn`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+/** 托盘旋转 (API 3057)，body 如 { angle: 1.57 } */
+export async function robokitSpin(body) {
+  const r = await fetch(`${API_BASE}/robokit/navigation/spin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+/** 圆弧运动 (API 3058)，body 见接口文档 */
+export async function robokitCircular(body) {
+  const r = await fetch(`${API_BASE}/robokit/navigation/circular`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+/** 启用和禁用线路 (API 3059)，body 见接口文档 */
+export async function robokitPathEnable(body) {
+  const r = await fetch(`${API_BASE}/robokit/navigation/path-enable`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+/** 清除指定导航路径 (API 3067) */
+export async function robokitClearTargetList() {
+  const r = await fetch(`${API_BASE}/robokit/navigation/clear-target-list`, { method: 'POST' })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+/** 根据任务id清除指定导航路径 (API 3068) */
+export async function robokitClearByTaskId(taskId) {
+  const r = await fetch(`${API_BASE}/robokit/navigation/clear-by-task-id`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ task_id: taskId }),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+/** 查询机器人任务链 (API 3101) */
+export async function robokitGetTasklistStatus() {
+  const r = await fetch(`${API_BASE}/robokit/navigation/tasklist-status`)
+  return r.ok ? r.json() : null
+}
+
+/** 查询机器人所有任务链 (API 3115) */
+export async function robokitGetTasklistList() {
+  const r = await fetch(`${API_BASE}/robokit/navigation/tasklist-list`)
+  return r.ok ? r.json() : null
+}
+
+/** 执行预存任务链 (API 3106) */
+export async function robokitExecuteTasklist(name) {
+  const r = await fetch(`${API_BASE}/robokit/navigation/tasklist-execute`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
 export async function robokitMoveTo(target, targetType = 'point') {
   const r = await fetch(`${API_BASE}/robokit/navigation/move-to`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ target, type: targetType }),
   })
-  return r.ok ? r.json() : null
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || data.err_msg || `请求失败 ${r.status}`)
+  return data
 }
 
 export async function robokitGetNavStatus() {
