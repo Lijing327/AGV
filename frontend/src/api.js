@@ -1,8 +1,16 @@
 /**
  * API 配置与请求
- * 开发环境通过 Vite proxy 使用 /api，生产环境需配置 VITE_API_BASE 或 nginx 反向代理
+ * 开发环境：Vite proxy 使用 /api
+ * 生产环境：自动使用同主机 8000 端口，无需运维配置代理或环境变量
  */
-const API_BASE = import.meta.env.VITE_API_BASE || '/api'
+function getApiBase() {
+  if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE
+  if (import.meta.env.PROD && typeof window !== 'undefined') {
+    return `http://${window.location.hostname}:8000/api`
+  }
+  return '/api'
+}
+const API_BASE = getApiBase()
 
 export async function fetchMap() {
   const r = await fetch(`${API_BASE}/map`)
@@ -54,6 +62,23 @@ export async function importMapFromFile(filePath) {
     body: JSON.stringify({ path: filePath }),
   })
   return r.json()
+}
+
+/**
+ * 路径规划：根据起点和终点自动计算最优路径，返回 move_task_list 格式
+ * @param {string} sourceId - 起点节点 ID
+ * @param {string} targetId - 终点节点 ID
+ * @returns {{ path: string[], move_task_list: Array<{source_id, id, task_id}> }}
+ */
+export async function planPath(sourceId, targetId) {
+  const r = await fetch(`${API_BASE}/map/plan-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source_id: sourceId, target_id: targetId }),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `路径规划失败 ${r.status}`)
+  return data
 }
 
 // ==================== Robokit 机器人API ====================
@@ -236,10 +261,22 @@ export async function robokitEmergencyStop() {
 }
 
 // 机器人导航API
-/** 路径导航 (API 3051)：给定起点、终点站点名，机器人沿固定路径运行。 */
-export async function robokitPathNavigation(sourceId, targetId, taskId = null) {
+/**
+ * 路径导航 (API 3051)：给定起点、终点站点名，机器人沿固定路径运行。
+ * @param {string} sourceId
+ * @param {string} targetId
+ * @param {string|null} taskId
+ * @param {Record<string, unknown>|null} extra 可选，如货叉 { operation: 'ForkUnload', end_height: 0 } 等会并入请求体
+ */
+export async function robokitPathNavigation(sourceId, targetId, taskId = null, extra = null) {
   const body = { source_id: sourceId, target_id: targetId }
   if (taskId != null && taskId !== '') body.task_id = taskId
+  if (extra && typeof extra === 'object') {
+    for (const [k, v] of Object.entries(extra)) {
+      if (v === undefined || v === null || v === '') continue
+      body[k] = v
+    }
+  }
   const r = await fetch(`${API_BASE}/robokit/navigation/path`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -574,31 +574,37 @@ async def emergency_stop():
 # ==================== 机器人导航 API ====================
 
 @router.post("/navigation/path")
-async def path_navigation(
-    source_id: str = Body(..., embed=True, description="起始站点名称，如 LM2 或 SELF_POSITION"),
-    id: str = Body(..., embed=True, alias="target_id", description="目标站点名称，如 LM1"),
-    task_id: Optional[str] = Body(None, embed=True),
-    **extra,
-):
+async def path_navigation(payload: dict = Body(...)):
     """
     路径导航 (API 3051，端口19206)
     给定起点、终点站点名，机器人沿固定路径运行。文档要求必填：source_id、id；task_id 可缺省。
 
     Request Body:
         {
-            "source_id": "LM2",   // 起始站点，或 "SELF_POSITION"
-            "target_id": "LM1",   // 目标站点（前端传 target_id，后端映射为 id）
-            "task_id": "可选"
+            "source_id": "LM2",
+            "target_id": "LM1",   // 或 "id" 表示目标站点，将映射为机器人协议中的 id
+            "task_id": "可选",
+            "operation": "ForkUnload",  // 可选，货叉：ForkLoad/ForkUnload/ForkHeight/ForkForward/Wait
+            "start_height": 0, "fork_mid_height": 0, "end_height": 0, "fork_dist": 0
         }
-    也可传文档中其它可选字段：angle, method, max_speed 等，会原样转发。
+    其余字段（angle, method, max_speed 等）会原样转发给机器人。
     """
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="请求体须为 JSON 对象")
+    source_id = str(payload.get("source_id") or "").strip()
+    target_raw = payload.get("target_id")
+    if target_raw is None:
+        target_raw = payload.get("id")
+    id_val = str(target_raw or "").strip()
+    if not source_id or not id_val:
+        raise HTTPException(status_code=400, detail="缺少 source_id 与 target_id（或 id）")
     client = get_robokit_client()
-    body = {"source_id": source_id, "id": id}
-    if task_id is not None:
-        body["task_id"] = task_id
-    for k, v in extra.items():
-        if v is not None and k != "target_id":
-            body[k] = v
+    body = {"source_id": source_id, "id": id_val}
+    skip = frozenset({"source_id", "target_id", "id"})
+    for k, v in payload.items():
+        if k in skip or v is None:
+            continue
+        body[k] = v
     try:
         result = await client.call_navigation(3051, body)
         check_response(result)
@@ -616,7 +622,7 @@ async def specified_path_navigation(body: dict = Body(..., embed=False)):
         {
             "move_task_list": [
                 {"source_id": "LM1", "id": "LM2", "task_id": "12344321"},
-                {"source_id": "LM2", "id": "AP1", "task_id": "12344322", "operation": "JackHeight", "jack_height": 0.2}
+                {"source_id": "LM2", "id": "AP1", "task_id": "12344322", "operation": "ForkHeight", "end_height": 0.2}
             ]
         }
     """

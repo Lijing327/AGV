@@ -385,12 +385,94 @@
 
         <!-- ===== 导航 ===== -->
         <div v-if="activeGroup === 'navigation'" class="group-content">
+          <!-- 智能路径规划：输入起点终点自动生成 move_task_list -->
+          <div class="card">
+            <div class="card-head"><h4>智能路径规划</h4></div>
+            <p class="card-hint">
+              本功能相当于<strong>指定路径 (3066) 的自动填表</strong>：根据已加载地图用 BFS 求最短站点序列，自动生成每段的
+              <code>source_id</code>、<code>id</code>、<code>task_id</code> 并写入下方多段表单；你仍可改货叉参数后再下发。
+              无需再手工逐段添加中间点。
+            </p>
+            <div class="input-row-3">
+              <div class="form-field compact">
+                <label>起点</label>
+                <input v-model="planPathForm.sourceId" placeholder="如 LM1" />
+              </div>
+              <div class="form-field compact">
+                <label>终点</label>
+                <input v-model="planPathForm.targetId" placeholder="如 AP1" />
+              </div>
+              <div class="form-field compact segment-actions">
+                <label>&nbsp;</label>
+                <button type="button" class="btn btn-blue" @click="handlePlanPath" :disabled="loading">规划路径</button>
+              </div>
+            </div>
+            <p class="card-hint plan-fork-hint">
+              货叉参数（可选，单位 m）：规划成功后会自动写入<strong>下方每一段</strong>；留空的项不下发。若勾选末段 <code>ForkUnload</code>，最后一段仍会强制 <code>end_height=0</code>。
+            </p>
+            <div class="input-row-4 fork-height-row plan-fork-defaults">
+              <div class="form-field compact">
+                <label>start_height (m) 起步前举升</label>
+                <input v-model.number="planPathForm.start_height" type="number" step="0.01" placeholder="可选" />
+              </div>
+              <div class="form-field compact">
+                <label>fork_mid_height (m) 行走中举升</label>
+                <input v-model.number="planPathForm.fork_mid_height" type="number" step="0.01" placeholder="可选" />
+              </div>
+              <div class="form-field compact">
+                <label>end_height (m) 到点后举升</label>
+                <input v-model.number="planPathForm.end_height" type="number" step="0.01" placeholder="可选" />
+              </div>
+              <div class="form-field compact">
+                <label>fork_dist (m) 前移距离</label>
+                <input v-model.number="planPathForm.fork_dist" type="number" step="0.01" placeholder="可选" />
+              </div>
+            </div>
+            <div class="fork-nav-options">
+              <label class="fork-check">
+                <input type="checkbox" v-model="navForm.planAutoUnloadLast" />
+                规划后末段自动 <code>ForkUnload</code>（到终点卸货，<code>end_height=0</code>）
+              </label>
+              <p class="card-hint fork-nav-hint">载货任务：先叉货，再点「指定路径(3066)」；勾选后最后一段会带货叉卸载。可与下方「下发前先等 DI」配合使用。</p>
+            </div>
+
+            <div class="plan-3066-preview">
+              <div class="plan-preview-toolbar">
+                <h5 class="plan-preview-title">3066 请求体预览</h5>
+                <div class="plan-preview-btns">
+                  <button type="button" class="btn btn-ghost-sm" @click="updateSpecPath3066Preview" :disabled="loading">刷新预览</button>
+                  <button type="button" class="btn btn-ghost-sm" @click="copySpecPath3066Preview" :disabled="!specPath3066PreviewJson">复制 JSON</button>
+                </div>
+              </div>
+              <p class="card-hint plan-preview-desc">
+                以下为当前下方「多段编辑」表单对应的 <code>POST</code> 体（与真正下发 3066 时一致）。规划成功后会自动更新；改表单后请点「刷新预览」核对。
+              </p>
+              <p class="card-hint plan-preview-desc">
+                若某段未选 <code>operation</code> 但填写了货叉高度/前移参数，系统会自动补为 <code>ForkHeight</code>（已体现在下方 JSON）。
+              </p>
+              <p v-if="planPathLastRoute?.length" class="plan-route-line">
+                <strong>站点序列：</strong><code>{{ planPathLastRoute.join(' → ') }}</code>
+              </p>
+              <p v-if="specPath3066PreviewError" class="card-hint card-error">{{ specPath3066PreviewError }}</p>
+              <ul v-else-if="specPath3066PreviewContinuityWarnings.length" class="plan-preview-warns">
+                <li v-for="(w, wi) in specPath3066PreviewContinuityWarnings" :key="wi">{{ w }}</li>
+              </ul>
+              <textarea
+                class="json-textarea plan-preview-ta"
+                readonly
+                rows="14"
+                :value="specPath3066PreviewJson"
+                placeholder="填写起点/终点后点击「规划路径」，或编辑下方多段后点「刷新预览」"
+              />
+            </div>
+          </div>
+
           <!-- 指定路径导航：最终使用接口（置顶，多段编辑） -->
           <div class="card priority-card">
             <div class="card-head"><h4>指定路径 (3066) — 最终使用接口</h4></div>
-            <p class="card-hint">向机器人发送站点序列，按序列依次经过不停留；每段必填 source_id、id、task_id（不可重复）；可带 operation（如 JackHeight）、jack_height。<strong>source_id 与 id 之间必须有直接相连的线路，不可跳点。</strong></p>
+            <p class="card-hint">每段必填 source_id、id、task_id；货叉路径可带 <code>operation</code>：<code>ForkLoad</code> / <code>ForkUnload</code> / <code>ForkHeight</code> / <code>ForkForward</code> / <code>Wait</code>，以及可选 <code>start_height</code>、<code>fork_mid_height</code>、<code>end_height</code>（单位 m）、<code>fork_dist</code>（前移距离）。<strong>相邻段须首尾相连。</strong></p>
             <p class="card-hint card-warn">下发前请先在「控制」里点击<strong>「抢占控制」</strong>，抢占控制权后即可直接调用本接口。若小车未动：① 第一段 source_id 填站点名表示小车须<strong>已在该站点</strong>，否则第一段可填 <code>SELF_POSITION</code> 表示从当前位置出发；② 确认地图上站点之间有直接线路。</p>
-            <p class="card-hint card-error">若报 <strong>52702 路径规划失败</strong>：① 确认地图上 <code>source_id</code> 与 <code>id</code> 两站点之间有<strong>直接连线</strong>（不可跳点）；② <code>jack_height</code> 单位为<strong>米</strong>，如 0.2 表示 0.2m，勿填 8.2 等过大数值；③ 确认地图已加载、站点 ID 与地图一致。</p>
+            <p class="card-hint card-error">若报 <strong>52702 路径规划失败</strong>：① 确认 <code>source_id</code> 与 <code>id</code> 两站点间有<strong>直接连线</strong>；② 货叉高度类参数单位为<strong>米</strong>，勿填过大；③ 地图站点 ID 与地图一致。</p>
             <div class="multi-segment-label">多段编辑</div>
             <div v-for="(seg, idx) in navForm.specifiedSegments" :key="idx" class="specified-segment">
               <div class="segment-head">第 {{ idx + 1 }} 段</div>
@@ -413,19 +495,54 @@
                   <label>operation (可选)</label>
                   <select v-model="seg.operation">
                     <option value="">无</option>
-                    <option value="JackHeight">JackHeight</option>
-                    <option value="JackLoad">JackLoad</option>
-                    <option value="JackUnload">JackUnload</option>
                     <option value="Wait">Wait</option>
+                    <option value="ForkLoad">ForkLoad</option>
+                    <option value="ForkUnload">ForkUnload</option>
+                    <option value="ForkHeight">ForkHeight</option>
+                    <option value="ForkForward">ForkForward</option>
                   </select>
-                </div>
-                <div class="form-field compact">
-                  <label>jack_height (可选)</label>
-                  <input v-model.number="seg.jack_height" type="number" step="0.01" placeholder="单位 m，如 0.2" title="单位：米，如 0.2 表示 0.2m" />
                 </div>
                 <div class="form-field compact segment-actions">
                   <label>&nbsp;</label>
                   <button type="button" class="btn btn-ghost-sm small" @click="removeSpecifiedSegment(idx)" :disabled="navForm.specifiedSegments.length <= 1">删除</button>
+                </div>
+              </div>
+              <div class="input-row-4 fork-height-row">
+                <div class="form-field compact">
+                  <label>start_height (m)</label>
+                  <input v-model.number="seg.start_height" type="number" step="0.01" placeholder="起步前举升" />
+                </div>
+                <div class="form-field compact">
+                  <label>fork_mid_height (m)</label>
+                  <input v-model.number="seg.fork_mid_height" type="number" step="0.01" placeholder="行走中举升" />
+                </div>
+                <div class="form-field compact">
+                  <label>end_height (m)</label>
+                  <input v-model.number="seg.end_height" type="number" step="0.01" placeholder="到点后举升" />
+                </div>
+                <div class="form-field compact">
+                  <label>fork_dist (m)</label>
+                  <input v-model.number="seg.fork_dist" type="number" step="0.01" placeholder="前移距离" />
+                </div>
+              </div>
+            </div>
+            <div class="fork-nav-options">
+              <label class="fork-check">
+                <input type="checkbox" v-model="navForm.specPathWaitFork" />
+                下发前先等待 DI 叉好（<code>status === true</code>）
+              </label>
+              <div v-if="navForm.specPathWaitFork" class="input-row-3 fork-di-row">
+                <div class="form-field compact">
+                  <label>叉好信号 DI (id)</label>
+                  <input v-model="navForm.forkDiId" placeholder="与监控区 DI 编号一致" />
+                </div>
+                <div class="form-field compact">
+                  <label>超时 (秒)</label>
+                  <input v-model.number="navForm.forkWaitTimeoutSec" type="number" min="5" step="1" />
+                </div>
+                <div class="form-field compact">
+                  <label>轮询 (ms)</label>
+                  <input v-model.number="navForm.forkPollMs" type="number" min="200" step="100" />
                 </div>
               </div>
             </div>
@@ -454,6 +571,52 @@
                 <input v-model="navForm.taskId" placeholder="可选" />
               </div>
             </div>
+            <div class="form-field compact">
+              <label>出发模式</label>
+              <select v-model="navForm.pathNavMode" class="fork-mode-select">
+                <option value="direct">直接出发（不等待叉货信号）</option>
+                <option value="wait_fork">等待 DI 叉好后再出发</option>
+              </select>
+            </div>
+            <div v-if="navForm.pathNavMode === 'wait_fork'" class="input-row-3">
+              <div class="form-field compact">
+                <label>叉好信号 DI (id)</label>
+                <input v-model="navForm.forkDiId" placeholder="监控区 DI 的 id" />
+              </div>
+              <div class="form-field compact">
+                <label>超时 (秒)</label>
+                <input v-model.number="navForm.forkWaitTimeoutSec" type="number" min="5" step="1" />
+              </div>
+              <div class="form-field compact">
+                <label>轮询 (ms)</label>
+                <input v-model.number="navForm.forkPollMs" type="number" min="200" step="100" />
+              </div>
+            </div>
+            <div class="fork-nav-options">
+              <label class="fork-check">
+                <input type="checkbox" v-model="navForm.pathNavUnloadAtEnd" />
+                本段附带货叉 <code>ForkUnload</code>（到终点卸货，非载货状态）
+              </label>
+              <div v-if="navForm.pathNavUnloadAtEnd" class="input-row-4 fork-3051-heights">
+                <div class="form-field compact">
+                  <label>start_height (m)</label>
+                  <input v-model.number="navForm.pathNavForkStartHeight" type="number" step="0.01" placeholder="可选" />
+                </div>
+                <div class="form-field compact">
+                  <label>fork_mid_height (m)</label>
+                  <input v-model.number="navForm.pathNavForkMidHeight" type="number" step="0.01" placeholder="可选" />
+                </div>
+                <div class="form-field compact">
+                  <label>end_height (m)</label>
+                  <input v-model.number="navForm.pathNavForkEndHeight" type="number" step="0.01" title="卸货常用 0" />
+                </div>
+                <div class="form-field compact">
+                  <label>fork_dist (m)</label>
+                  <input v-model.number="navForm.pathNavForkDist" type="number" step="0.01" placeholder="可选" />
+                </div>
+              </div>
+            </div>
+            <p v-if="navForm.pathNavMode === 'wait_fork'" class="card-hint">将反复查询机器人 I/O（与「监控」中刷新同源），直到所选 DI 的 <code>status</code> 为 true 再下发 3051。</p>
             <button class="btn btn-blue full" @click="handlePathNavigation" :disabled="loading">路径导航(3051)</button>
           </div>
 
@@ -684,16 +847,44 @@ const moveForm = ref({ vx: 0.5, vy: 0, w: 0 })
 const controlNickname = ref('agv-web')
 const relocateForm = ref({ x: 0, y: 0, angleDeg: 0 })
 const translateForm = ref({ dist: 1, vx: null, vy: null, mode: 0 })
+const planPathForm = ref({
+  sourceId: '',
+  targetId: '',
+  start_height: '',
+  fork_mid_height: '',
+  end_height: '',
+  fork_dist: '',
+})
+
 const navForm = ref({
   target: '', type: 'point',
   sourceId: 'SELF_POSITION', targetId: 'LM1', taskId: '',
+  pathNavMode: 'direct',
+  forkDiId: '',
+  forkWaitTimeoutSec: 120,
+  forkPollMs: 500,
+  pathNavUnloadAtEnd: false,
+  pathNavForkStartHeight: '',
+  pathNavForkMidHeight: '',
+  pathNavForkEndHeight: 0,
+  pathNavForkDist: '',
+  planAutoUnloadLast: false,
+  specPathWaitFork: false,
   specifiedSegments: [
-    { source_id: 'LM1', id: 'LM2', task_id: '12344321', operation: '', jack_height: '' },
-    { source_id: 'LM2', id: 'AP1', task_id: '12344322', operation: 'JackHeight', jack_height: 0.2 },
+    { source_id: 'LM1', id: 'LM2', task_id: '12344321', operation: '', start_height: '', fork_mid_height: '', end_height: '', fork_dist: '' },
+    { source_id: 'LM2', id: 'AP1', task_id: '12344322', operation: 'ForkHeight', start_height: '', fork_mid_height: '', end_height: 0.2, fork_dist: '' },
   ],
   moveAngle: 1.57, speedW: null, locMode: 0,
   spinAngle: 1.57, genericNavJson: '{}', clearTaskId: '', tasklistName: '',
 })
+
+/** 最近一次「智能路径规划」返回的站点序列（仅用于预览展示） */
+const planPathLastRoute = ref(null)
+/** 与当前多段表单一致的 3066 POST 体 JSON 字符串 */
+const specPath3066PreviewJson = ref('')
+const specPath3066PreviewError = ref('')
+const specPath3066PreviewContinuityWarnings = ref([])
+
 const tasklistResult = ref(null)
 const tasklistStatusHint = ref('')
 const simpleBattery = ref(false)
@@ -712,6 +903,144 @@ const slamStatusText = computed(() => {
 function log(message, isError = false, isSuccess = false) {
   logs.value.unshift({ time: new Date().toLocaleTimeString(), message, error: isError, success: isSuccess })
   if (logs.value.length > 50) logs.value.pop()
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function findDiEntry(diList, diId) {
+  const raw = String(diId ?? '').trim()
+  if (!raw) return null
+  return (diList || []).find((d) => String(d.id) === raw || Number(d.id) === Number(diId))
+}
+
+/** 轮询 I/O，直到指定 DI 的 status 为 true（叉货到位等） */
+async function waitForForkDiReady(diId, options = {}) {
+  const timeoutMs = Math.max(5000, (Number(options.timeoutSec) || 120) * 1000)
+  const intervalMs = Math.max(200, Number(options.pollMs) || 500)
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    const io = await api.robokitGetIO()
+    if (!io) {
+      throw new Error('查询 I/O 无响应，请检查后端与机器人连接')
+    }
+    if (io.ret_code != null && io.ret_code !== 0) {
+      throw new Error('查询 I/O 失败: ' + (io.err_msg || 'ret_code=' + io.ret_code))
+    }
+    const item = findDiEntry(io?.DI, diId)
+    if (item && item.status === true) return
+    await sleep(intervalMs)
+  }
+  throw new Error(`等待 DI「${diId}」就绪超时（${timeoutMs / 1000}s），请确认已叉货且 I/O 配置正确`)
+}
+
+const FORK_NUMERIC_KEYS = ['start_height', 'fork_mid_height', 'end_height', 'fork_dist']
+
+/** 从段对象提取货叉数值字段，写入 item（仅发送有限数字） */
+function mergeForkNumericFromSeg(item, seg) {
+  for (const key of FORK_NUMERIC_KEYS) {
+    const v = seg[key]
+    if (v != null && v !== '' && Number.isFinite(Number(v))) {
+      item[key] = Number(v)
+    }
+  }
+}
+
+/** 将智能规划表单中的货叉默认值写入每一段（仅覆盖表单里填了有效数字的项） */
+function applyPlanPathForkDefaultsToSegments(segments, planForm) {
+  for (const seg of segments) {
+    for (const key of FORK_NUMERIC_KEYS) {
+      const raw = planForm[key]
+      if (raw != null && raw !== '' && Number.isFinite(Number(raw))) {
+        seg[key] = Number(raw)
+      }
+    }
+  }
+}
+
+/** 从导航表单提取 3051 货叉可选高度（用于 ForkUnload 勾选时） */
+function mergeForkNumericFromPathNavForm(extra, form) {
+  const fields = [
+    ['start_height', form.pathNavForkStartHeight],
+    ['fork_mid_height', form.pathNavForkMidHeight],
+    ['end_height', form.pathNavForkEndHeight],
+    ['fork_dist', form.pathNavForkDist],
+  ]
+  for (const [key, raw] of fields) {
+    if (raw != null && raw !== '' && Number.isFinite(Number(raw))) {
+      extra[key] = Number(raw)
+    }
+  }
+}
+
+function getSegmentContinuityWarnings(list) {
+  const messages = []
+  for (let i = 0; i < list.length - 1; i++) {
+    const currEnd = list[i].id
+    const nextStart = list[i + 1].source_id
+    if (currEnd !== nextStart) {
+      messages.push(
+        `第 ${i + 1} 段终点「${currEnd}」与第 ${i + 2} 段起点「${nextStart}」不一致，线路不连续`,
+      )
+    }
+  }
+  return messages
+}
+
+/** 与下发 3066 相同规则，从多段表单构建 move_task_list */
+function buildMoveTaskListFromSegments(segments) {
+  const list = []
+  let autoOperationCount = 0
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i]
+    const source_id = (seg.source_id || '').trim()
+    const id = (seg.id || '').trim()
+    const task_id = (seg.task_id || '').trim()
+    if (!source_id || !id || !task_id) {
+      return {
+        ok: false,
+        list,
+        error: `第 ${i + 1} 段须填写 source_id、id、task_id`,
+      }
+    }
+    const item = { source_id, id, task_id }
+    if (seg.operation && seg.operation !== '') item.operation = seg.operation
+    mergeForkNumericFromSeg(item, seg)
+    // 兼容部分固件：仅填高度但 operation 为空时会按 Wait 忽略中途/到点动作
+    if (!item.operation) {
+      const hasForkNumeric = FORK_NUMERIC_KEYS.some((k) => item[k] !== undefined)
+      if (hasForkNumeric) {
+        item.operation = 'ForkHeight'
+        autoOperationCount += 1
+      }
+    }
+    list.push(item)
+  }
+  return { ok: true, list, error: '', autoOperationCount }
+}
+
+function updateSpecPath3066Preview() {
+  const built = buildMoveTaskListFromSegments(navForm.value.specifiedSegments)
+  specPath3066PreviewJson.value = JSON.stringify({ move_task_list: built.list }, null, 2)
+  if (!built.ok) {
+    specPath3066PreviewError.value = built.error
+    specPath3066PreviewContinuityWarnings.value = []
+    return
+  }
+  specPath3066PreviewError.value = ''
+  specPath3066PreviewContinuityWarnings.value = getSegmentContinuityWarnings(built.list)
+}
+
+async function copySpecPath3066Preview() {
+  const text = specPath3066PreviewJson.value
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    log('已复制 3066 请求 JSON', false, true)
+  } catch (e) {
+    log('复制失败（部分环境需 HTTPS，可手动全选文本框复制）', true)
+  }
 }
 
 function formatRobokitError(msg) {
@@ -1035,20 +1364,88 @@ async function handlePathNavigation() {
     const sourceId = (navForm.value.sourceId || '').trim()
     const targetId = (navForm.value.targetId || '').trim()
     if (!sourceId || !targetId) { log('请填写起点 source_id 与终点 id', true); return }
+    if (navForm.value.pathNavMode === 'wait_fork') {
+      const di = String(navForm.value.forkDiId ?? '').trim()
+      if (!di) {
+        log('「等待 DI 叉好」模式请填写叉好信号对应的 DI 编号（与监控区一致）', true)
+        return
+      }
+      log(`等待 DI「${di}」status=true（叉好）…`, false, false)
+      await waitForForkDiReady(di, {
+        timeoutSec: navForm.value.forkWaitTimeoutSec,
+        pollMs: navForm.value.forkPollMs,
+      })
+      log(`DI「${di}」已就绪，下发 3051`, false, true)
+    }
     const taskId = (navForm.value.taskId || '').trim() || null
-    const result = await api.robokitPathNavigation(sourceId, targetId, taskId)
+    const extra = {}
+    if (navForm.value.pathNavUnloadAtEnd) {
+      extra.operation = 'ForkUnload'
+      mergeForkNumericFromPathNavForm(extra, navForm.value)
+      if (extra.end_height === undefined) {
+        extra.end_height = 0
+      }
+    }
+    const result = await api.robokitPathNavigation(
+      sourceId,
+      targetId,
+      taskId,
+      Object.keys(extra).length ? extra : null,
+    )
     if (result?.ret_code === 0) log(`路径导航(3051) ${sourceId} → ${targetId}`, false, true)
     else log('路径导航失败', true)
   } catch (e) { log('路径导航错误: ' + e.message, true) }
   finally { loading.value = false }
 }
 
+async function handlePlanPath() {
+  const sourceId = (planPathForm.value.sourceId || '').trim()
+  const targetId = (planPathForm.value.targetId || '').trim()
+  if (!sourceId || !targetId) {
+    log('请填写起点和终点', true)
+    return
+  }
+  loading.value = true
+  try {
+    const result = await api.planPath(sourceId, targetId)
+    const list = result.move_task_list || []
+    if (!list.length) {
+      log('未找到可行路径', true)
+      return
+    }
+    navForm.value.specifiedSegments = list.map((seg) => ({
+      source_id: seg.source_id,
+      id: seg.id,
+      task_id: seg.task_id,
+      operation: seg.operation || '',
+      start_height: seg.start_height != null ? seg.start_height : '',
+      fork_mid_height: seg.fork_mid_height != null ? seg.fork_mid_height : '',
+      end_height: seg.end_height != null ? seg.end_height : '',
+      fork_dist: seg.fork_dist != null ? seg.fork_dist : '',
+    }))
+    applyPlanPathForkDefaultsToSegments(navForm.value.specifiedSegments, planPathForm.value)
+    if (navForm.value.planAutoUnloadLast && navForm.value.specifiedSegments.length) {
+      const last = navForm.value.specifiedSegments[navForm.value.specifiedSegments.length - 1]
+      last.operation = 'ForkUnload'
+      last.end_height = 0
+    }
+    planPathLastRoute.value = result.path || null
+    updateSpecPath3066Preview()
+    log(`路径规划成功: ${result.path?.join(' → ') || sourceId + ' → ' + targetId}，共 ${list.length} 段`, false, true)
+  } catch (e) {
+    log('路径规划失败: ' + (e.message || e), true)
+  } finally {
+    loading.value = false
+  }
+}
+
 function addSpecifiedSegment() {
   const segments = navForm.value.specifiedSegments
   navForm.value.specifiedSegments = [
     ...segments,
-    { source_id: '', id: '', task_id: '', operation: '', jack_height: '' },
+    { source_id: '', id: '', task_id: '', operation: '', start_height: '', fork_mid_height: '', end_height: '', fork_dist: '' },
   ]
+  updateSpecPath3066Preview()
 }
 
 function removeSpecifiedSegment(idx) {
@@ -1056,27 +1453,35 @@ function removeSpecifiedSegment(idx) {
   const segments = [...navForm.value.specifiedSegments]
   segments.splice(idx, 1)
   navForm.value.specifiedSegments = segments
+  updateSpecPath3066Preview()
 }
 
 async function handleSpecifiedPathNavigation() {
   loading.value = true
   try {
-    const list = []
-    for (const seg of navForm.value.specifiedSegments) {
-      const source_id = (seg.source_id || '').trim()
-      const id = (seg.id || '').trim()
-      const task_id = (seg.task_id || '').trim()
-      if (!source_id || !id || !task_id) {
-        log('指定路径(3066) 每段须填写 source_id、id、task_id', true)
+    if (navForm.value.specPathWaitFork) {
+      const di = String(navForm.value.forkDiId ?? '').trim()
+      if (!di) {
+        log('已勾选「下发前先等待 DI」请填写 DI 编号', true)
         return
       }
-      const item = { source_id, id, task_id }
-      if (seg.operation && seg.operation !== '') item.operation = seg.operation
-      if (seg.jack_height != null && seg.jack_height !== '' && Number.isFinite(Number(seg.jack_height))) {
-        item.jack_height = Number(seg.jack_height)
-      }
-      list.push(item)
+      log(`等待 DI「${di}」status=true 后再下发 3066…`, false, false)
+      await waitForForkDiReady(di, {
+        timeoutSec: navForm.value.forkWaitTimeoutSec,
+        pollMs: navForm.value.forkPollMs,
+      })
+      log(`DI「${di}」已就绪`, false, true)
     }
+    const built = buildMoveTaskListFromSegments(navForm.value.specifiedSegments)
+    if (!built.ok) {
+      log('指定路径(3066) ' + built.error, true)
+      return
+    }
+    const list = built.list
+    if (built.autoOperationCount > 0) {
+      log(`检测到 ${built.autoOperationCount} 段仅填了货叉数值参数，已自动补 operation=ForkHeight`, false, false)
+    }
+    updateSpecPath3066Preview()
     for (let i = 0; i < list.length - 1; i++) {
       const currEnd = list[i].id
       const nextStart = list[i + 1].source_id
@@ -1301,7 +1706,11 @@ function stopMoveHeartbeat() {
   if (moveHeartbeatTimer.value) { clearInterval(moveHeartbeatTimer.value); moveHeartbeatTimer.value = null }
 }
 
-onMounted(() => { log('Robokit面板已初始化'); startPoll() })
+onMounted(() => {
+  log('Robokit面板已初始化')
+  startPoll()
+  updateSpecPath3066Preview()
+})
 onUnmounted(() => {
   stopMoveHeartbeat()
   api.robokitStop().catch(() => {})
@@ -1517,6 +1926,59 @@ onUnmounted(() => {
 .input-row-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-bottom: 10px; }
 .input-row-3 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-bottom: 10px; }
 .input-row-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+
+.fork-nav-options { margin: 10px 0; display: flex; flex-direction: column; gap: 8px; }
+.fork-check {
+  display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text-secondary);
+  cursor: pointer; line-height: 1.45;
+}
+.fork-check input { margin-top: 3px; flex-shrink: 0; }
+.fork-nav-hint { margin: 0 !important; }
+.fork-mode-select {
+  width: 100%; padding: 8px 10px; background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px;
+}
+.fork-di-row { margin-top: 4px; }
+.fork-height-row { margin-bottom: 8px; }
+.fork-3051-heights { margin-top: 6px; }
+
+.plan-3066-preview {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.plan-preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.plan-preview-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.plan-preview-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.plan-preview-btns .btn { flex: 0 0 auto; }
+.plan-preview-desc { margin-top: 0 !important; margin-bottom: 8px !important; }
+.plan-route-line {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+.plan-preview-warns {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--orange);
+}
+.plan-preview-ta { font-size: 11px; margin-top: 0; min-height: 200px; }
+.plan-fork-hint { margin-top: 10px !important; margin-bottom: 6px !important; }
+.plan-fork-defaults { margin-bottom: 6px; }
 
 .ctrl-form-row { margin-bottom: 10px; }
 .ctrl-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }

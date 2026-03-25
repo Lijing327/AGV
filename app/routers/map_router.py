@@ -3,14 +3,16 @@
 """
 import json
 import tempfile
+import time
 from dataclasses import asdict
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, HTTPException
 
 from app.deps import get_map_repo, set_map_data, get_import_meta
 from app.domain.models import Node, Edge, MapData
+from app.services.path_service import PathService
 from app.services.smap_importer import import_smap
 
 router = APIRouter(prefix="/map")
@@ -67,6 +69,50 @@ def get_map():
         response["adjacency"] = import_meta.get("adjacency")
 
     return response
+
+
+@router.post("/plan-path")
+def plan_path(body: Annotated[dict, Body()]):
+    """
+    根据起点和终点自动规划最优路径，并生成指定路径(3066)所需的 move_task_list 参数。
+
+    请求体: {"source_id": "LM1", "target_id": "AP1"}
+    返回: {"path": ["LM1", "LM2", "AP1"], "move_task_list": [...]}
+
+    使用 BFS 算法计算最短路径（最少经过节点数），路径段首尾相连。
+    """
+    source_id = (body.get("source_id") or "").strip()
+    target_id = (body.get("target_id") or "").strip()
+    if not source_id or not target_id:
+        raise HTTPException(status_code=400, detail="请提供 source_id 和 target_id")
+
+    map_data = get_map_repo().get_map()
+    path_service = PathService(map_data)
+    node_ids = path_service.find_path(source_id, target_id)
+
+    if not node_ids:
+        raise HTTPException(
+            status_code=404,
+            detail=f"无法找到从 {source_id} 到 {target_id} 的路径，请确认两节点在地图中存在且连通",
+        )
+
+    # 构建完整路径：起点 + 中间节点
+    full_path = [source_id] + node_ids
+
+    # 将路径转换为 move_task_list 格式，每段 source_id -> id 首尾相连
+    move_task_list = []
+    base_task_id = int(time.time() * 1000) % 100000000
+    for i in range(len(full_path) - 1):
+        seg_source = full_path[i]
+        seg_target = full_path[i + 1]
+        task_id = str(base_task_id + i)
+        move_task_list.append({
+            "source_id": seg_source,
+            "id": seg_target,
+            "task_id": task_id,
+        })
+
+    return {"path": full_path, "move_task_list": move_task_list}
 
 
 @router.get("/advanced")
