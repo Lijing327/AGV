@@ -7,7 +7,13 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Body
 
-from app.deps import get_robokit_client, _on_robot_push, get_robot_push_position, clear_robot_push_position
+from app.deps import (
+    get_robokit_client,
+    dispose_robokit_client,
+    _on_robot_push,
+    get_robot_push_position,
+    clear_robot_push_position,
+)
 from app.services.robokit_api import (
     RobokitAPI, RobokitError, RobokitConnectionError, RobokitTimeoutError, check_response,
     API_RELEASE_CONTROL, API_TAKE_CONTROL,
@@ -34,13 +40,22 @@ async def connect(
     Returns:
         {"success": true, "message": "连接成功"}
     """
+    # 必须先关闭旧客户端，否则会泄漏 _push_listen_loop 任务导致异常与连接无响应
+    await dispose_robokit_client()
+    clear_robot_push_position()
     client = get_robokit_client(host)
     try:
         success = await client.connect(port)
         if success:
             # 启动机器人推送监听（端口 19301），用于地图实时位置
-            await client.start_push_listener(on_position=_on_robot_push)
-            return {"success": True, "message": "连接成功"}
+            push_ok = await client.start_push_listener(on_position=_on_robot_push)
+            if push_ok:
+                return {"success": True, "message": "连接成功"}
+            return {
+                "success": True,
+                "message": "控制端口已连接，推送端口 19301 未连通（地图实时位姿可能不更新）",
+                "push_listener": False,
+            }
         else:
             return {"success": False, "message": "连接失败"}
     except Exception as e:
@@ -187,6 +202,12 @@ async def get_speed():
         return result
     except RobokitError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except ConnectionError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except TimeoutError as e:
+        raise HTTPException(status_code=504, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=str(e))
 
 @router.get("/robot/blocked")
 async def get_blocked_status():
@@ -259,6 +280,12 @@ async def get_emergency_status():
         return result
     except RobokitError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except ConnectionError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except TimeoutError as e:
+        raise HTTPException(status_code=504, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=str(e))
 
 @router.get("/robot/io")
 async def get_io_status():
@@ -278,6 +305,12 @@ async def get_io_status():
         return result
     except RobokitError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except ConnectionError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except TimeoutError as e:
+        raise HTTPException(status_code=504, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=str(e))
 
 @router.get("/robot/motor")
 async def get_motor_status(motor_names: Optional[str] = Query(None, description="电机名称，多个用逗号分隔")):

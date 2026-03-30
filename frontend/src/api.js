@@ -1,12 +1,24 @@
 /**
  * API 配置与请求
- * 开发环境：Vite proxy 使用 /api
- * 生产环境：自动使用同主机 8000 端口，无需运维配置代理或环境变量
+ *
+ * - 开发 (npm run dev)：默认走相对路径 /api，由 Vite 代理到 VITE_DEV_PROXY_TARGET（见 vite.config.js）
+ * - 生产 (build)：优先使用 VITE_API_BASE（完整 URL，如 https://www.yonghongjituan.com:6715/api）
+ *   未配置时：与当前页面同主机、端口 6715（与线上部署约定一致，可按需改 env）
+ *
+ * 环境变量说明见 frontend/.env.example
  */
 function getApiBase() {
-  if (import.meta.env.VITE_API_BASE) return import.meta.env.VITE_API_BASE
-  if (import.meta.env.PROD && typeof window !== 'undefined') {
-    return `http://${window.location.hostname}:8000/api`
+  const fromEnv = import.meta.env.VITE_API_BASE
+  if (fromEnv !== undefined && String(fromEnv).trim() !== '') {
+    return String(fromEnv).trim().replace(/\/+$/, '')
+  }
+  if (import.meta.env.DEV) {
+    return '/api'
+  }
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:'
+    const host = window.location.hostname
+    return `${protocol}//${host}:6715/api`
   }
   return '/api'
 }
@@ -83,14 +95,48 @@ export async function planPath(sourceId, targetId) {
 
 // ==================== Robokit 机器人API ====================
 
-// 连接管理
-export async function robokitConnect(host, port) {
-  const r = await fetch(`${API_BASE}/robokit/connect`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ host, port }),
-  })
-  return r.ok ? r.json() : null
+// 连接管理（超时避免 fetch 一直挂起导致界面「点了没反应」）
+export async function robokitConnect(host, port, timeoutMs = 45000) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  const payload = {
+    host: String(host || '').trim(),
+    port:
+      port === '' || port == null || Number.isNaN(Number(port))
+        ? null
+        : Number(port),
+  }
+  try {
+    const r = await fetch(`${API_BASE}/robokit/connect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    })
+    let data = {}
+    try {
+      data = await r.json()
+    } catch {
+      data = {}
+    }
+    if (!r.ok) {
+      const detail =
+        typeof data.detail === 'string'
+          ? data.detail
+          : Array.isArray(data.detail)
+            ? data.detail.map((d) => d.msg || d).join('; ')
+            : `HTTP ${r.status}`
+      throw new Error(detail)
+    }
+    return data
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      throw new Error(`连接请求超时（${timeoutMs / 1000}s），请检查后端是否运行、代理与机器人 IP`)
+    }
+    throw e
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 export async function robokitDisconnect() {

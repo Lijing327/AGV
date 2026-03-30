@@ -161,8 +161,25 @@ def update_robokit_host(host: str) -> None:
     """
     global _robokit_client, _robokit_host
     _robokit_host = host
-    # 清除旧客户端，下次调用get_robokit_client时会创建新客户端
+    # 仅更新默认地址；若需切换已连接实例，请先 await dispose_robokit_client()
     _robokit_client = None
+
+
+async def dispose_robokit_client() -> None:
+    """
+    关闭并清空全局 Robokit 客户端（含推送监听任务）。
+    更换 IP 或重新连接前必须调用，否则旧 asyncio 任务泄漏会导致
+    「Task was destroyed but it is pending」及界面连接异常等问题。
+    """
+    global _robokit_client
+    if _robokit_client is None:
+        return
+    client = _robokit_client
+    _robokit_client = None
+    try:
+        await client.close()
+    except Exception:
+        pass
 
 
 def _on_robot_push(data: dict) -> None:
@@ -203,9 +220,8 @@ def get_robokit_client(host: str | None = None) -> RobokitClient:
     """
     global _robokit_client, _robokit_host
 
-    if host:
+    if host is not None:
         _robokit_host = host
-        _robokit_client = None  # 强制重新创建
 
     if _robokit_client is None:
         _robokit_client = RobokitClient(host=_robokit_host)

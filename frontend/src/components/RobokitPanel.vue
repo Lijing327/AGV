@@ -6,8 +6,14 @@
         <span class="conn-dot" :class="{ online: connectionStatus.connected }"></span>
         <span class="conn-text">{{ connectionStatus.connected ? '已连接' : '未连接' }}</span>
         <span class="conn-host" v-if="connectionStatus.connected">{{ connectionStatus.host }}</span>
-        <button class="conn-btn" :class="{ disconnect: connectionStatus.connected }" @click="handleToggleConnection">
-          {{ connectionStatus.connected ? '断开' : '连接' }}
+        <button
+          class="conn-btn"
+          type="button"
+          :class="{ disconnect: connectionStatus.connected }"
+          :disabled="loading"
+          @click="handleToggleConnection"
+        >
+          {{ connectionStatus.connected ? '断开' : loading ? '连接中…' : '连接' }}
         </button>
       </div>
       <!-- 连接表单 -->
@@ -22,7 +28,9 @@
             <input v-model="connectForm.port" type="number" placeholder="19204" />
           </div>
         </div>
-        <button class="btn btn-blue full" @click="handleConnect">连接机器人</button>
+        <button class="btn btn-blue full" type="button" :disabled="loading" @click="handleConnect">
+          {{ loading ? '连接中…' : '连接机器人' }}
+        </button>
       </div>
     </div>
 
@@ -393,6 +401,9 @@
               <code>source_id</code>、<code>id</code>、<code>task_id</code> 并写入下方多段表单；你仍可改货叉参数后再下发。
               无需再手工逐段添加中间点。
             </p>
+            <p class="card-hint card-warn">
+              <strong>「规划路径」不会让机器人动：</strong>只请求本机后端 <code>/map/plan-path</code> 算路并更新下方表单。真正下发导航必须再点「指定路径（3066）」或「一键搬运」等按钮。
+            </p>
             <div class="input-row-3">
               <div class="form-field compact">
                 <label>起点</label>
@@ -467,6 +478,79 @@
             </div>
           </div>
 
+          <!-- 一键搬运：ForkLoad → 导航 → ForkUnload（不影响现有逻辑，独立按钮） -->
+          <div class="card">
+            <div class="card-head"><h4>一键搬运（新功能）</h4></div>
+            <p class="card-hint">
+              用于验证流程：先到取货点执行 <code>ForkLoad</code>，再导航到目标点执行 <code>ForkUnload</code>。
+              <strong>不会改变</strong>现有 3051 / 3066 的使用方式，仅新增一套按钮执行。
+            </p>
+            <div class="input-row-3">
+              <div class="form-field compact">
+                <label>取货点（站点）</label>
+                <input v-model="oneKeyForm.pickId" placeholder="如 PP1" />
+              </div>
+              <div class="form-field compact">
+                <label>放货点（站点）</label>
+                <input v-model="oneKeyForm.dropId" placeholder="如 LM55" />
+              </div>
+              <div class="form-field compact">
+                <label>模式</label>
+                <select v-model="oneKeyForm.mode" class="fork-mode-select">
+                  <option value="A">A：一次下发（依赖 ForkLoad 内部完成后再走）</option>
+                  <option value="B">B：先ForkLoad段 → 等DI确认 → 再下发剩余路径</option>
+                </select>
+              </div>
+            </div>
+            <div class="input-row-3">
+              <div class="form-field compact">
+                <label>叉好信号 DI (id)（用于 B）</label>
+                <input v-model="oneKeyForm.diId" placeholder="多个用英文逗号分隔，如 1,9（须全部为 true）" />
+              </div>
+              <div class="form-field compact">
+                <label>超时 (秒)</label>
+                <input v-model.number="oneKeyForm.timeoutSec" type="number" min="5" step="1" />
+              </div>
+              <div class="form-field compact">
+                <label>轮询 (ms)</label>
+                <input v-model.number="oneKeyForm.pollMs" type="number" min="200" step="100" />
+              </div>
+            </div>
+            <p class="card-hint plan-fork-hint">货叉参数（可选，单位 m）：用于 <code>ForkLoad</code> 段，以及导航段的高度/前移默认值。</p>
+            <div class="input-row-4 fork-height-row plan-fork-defaults">
+              <div class="form-field compact">
+                <label>start_height (m)</label>
+                <input v-model.number="oneKeyForm.start_height" type="number" step="0.01" placeholder="可选" />
+              </div>
+              <div class="form-field compact">
+                <label>fork_mid_height (m)</label>
+                <input v-model.number="oneKeyForm.fork_mid_height" type="number" step="0.01" placeholder="可选" />
+              </div>
+              <div class="form-field compact">
+                <label>end_height (m)</label>
+                <input v-model.number="oneKeyForm.end_height" type="number" step="0.01" placeholder="可选" />
+              </div>
+              <div class="form-field compact">
+                <label>fork_dist (m)</label>
+                <input v-model.number="oneKeyForm.fork_dist" type="number" step="0.01" placeholder="可选" />
+              </div>
+            </div>
+            <div class="fork-nav-options">
+              <label class="fork-check">
+                <input type="checkbox" v-model="oneKeyForm.showPreview" />
+                显示本次一键搬运将下发的 3066 JSON（用于核对）
+              </label>
+              <textarea v-if="oneKeyForm.showPreview" class="json-textarea plan-preview-ta" readonly rows="12" :value="oneKeyPreviewJson" />
+            </div>
+            <div class="btn-row-2">
+              <button type="button" class="btn btn-ghost-sm" @click="refreshOneKeyPreview" :disabled="loading">刷新预览</button>
+              <button type="button" class="btn btn-blue full" @click="handleOneKeyCarry" :disabled="loading">执行一键搬运</button>
+            </div>
+            <p class="card-hint card-warn">
+              说明：模式 A 会一次下发完整 3066（含 ForkLoad 与 ForkUnload）。模式 B 会先下发“到取货点+ForkLoad”的 3066，等所填 DI（可多个，须全部为 <code>true</code>）后再下发剩余路径+ForkUnload。
+            </p>
+          </div>
+
           <!-- 指定路径导航：最终使用接口（置顶，多段编辑） -->
           <div class="card priority-card">
             <div class="card-head"><h4>指定路径 (3066) — 最终使用接口</h4></div>
@@ -529,12 +613,12 @@
             <div class="fork-nav-options">
               <label class="fork-check">
                 <input type="checkbox" v-model="navForm.specPathWaitFork" />
-                下发前先等待 DI 叉好（<code>status === true</code>）
+                下发前先等待 DI 叉好（可多路，<code>status</code> 须<strong>全部为 true</strong>）
               </label>
               <div v-if="navForm.specPathWaitFork" class="input-row-3 fork-di-row">
                 <div class="form-field compact">
                   <label>叉好信号 DI (id)</label>
-                  <input v-model="navForm.forkDiId" placeholder="与监控区 DI 编号一致" />
+                  <input v-model="navForm.forkDiId" placeholder="如 1,9 与监控区 id 一致" />
                 </div>
                 <div class="form-field compact">
                   <label>超时 (秒)</label>
@@ -581,7 +665,7 @@
             <div v-if="navForm.pathNavMode === 'wait_fork'" class="input-row-3">
               <div class="form-field compact">
                 <label>叉好信号 DI (id)</label>
-                <input v-model="navForm.forkDiId" placeholder="监控区 DI 的 id" />
+                <input v-model="navForm.forkDiId" placeholder="如 1,9，多个英文逗号分隔" />
               </div>
               <div class="form-field compact">
                 <label>超时 (秒)</label>
@@ -616,7 +700,7 @@
                 </div>
               </div>
             </div>
-            <p v-if="navForm.pathNavMode === 'wait_fork'" class="card-hint">将反复查询机器人 I/O（与「监控」中刷新同源），直到所选 DI 的 <code>status</code> 为 true 再下发 3051。</p>
+            <p v-if="navForm.pathNavMode === 'wait_fork'" class="card-hint">将反复查询机器人 I/O（与「监控」中刷新同源），直到所填<strong>每个</strong> DI 的 <code>status</code> 均为 <code>true</code> 再下发 3051。</p>
             <button class="btn btn-blue full" @click="handlePathNavigation" :disabled="loading">路径导航(3051)</button>
           </div>
 
@@ -856,6 +940,21 @@ const planPathForm = ref({
   fork_dist: '',
 })
 
+const oneKeyForm = ref({
+  pickId: '',
+  dropId: '',
+  mode: 'A', // A:一次下发  B:分段下发并等待DI
+  diId: '',
+  timeoutSec: 120,
+  pollMs: 500,
+  start_height: '',
+  fork_mid_height: '',
+  end_height: '',
+  fork_dist: '',
+  showPreview: false,
+})
+const oneKeyPreviewJson = ref('')
+
 const navForm = ref({
   target: '', type: 'point',
   sourceId: 'SELF_POSITION', targetId: 'LM1', taskId: '',
@@ -915,8 +1014,29 @@ function findDiEntry(diList, diId) {
   return (diList || []).find((d) => String(d.id) === raw || Number(d.id) === Number(diId))
 }
 
-/** 轮询 I/O，直到指定 DI 的 status 为 true（叉货到位等） */
-async function waitForForkDiReady(diId, options = {}) {
+/** 从输入解析多个 DI 编号，支持英文/中文逗号、分号、空格 */
+function parseForkDiIdList(input) {
+  const s = String(input ?? '').trim()
+  if (!s) return []
+  return s.split(/[,，;\s]+/).map((x) => x.trim()).filter(Boolean)
+}
+
+/** 所列 DI 在列表中均存在且 status 均为 true（与现场「双触发器都到位」一致） */
+function forkDiSignalsAllReady(diList, ids) {
+  for (const id of ids) {
+    const item = findDiEntry(diList, id)
+    if (!item || item.status !== true) return false
+  }
+  return true
+}
+
+/** 轮询 I/O，直到所列 DI 全部 status===true（叉货到位等） */
+async function waitForForkDiReady(diInput, options = {}) {
+  const ids = parseForkDiIdList(diInput)
+  if (!ids.length) {
+    throw new Error('请填写至少一个 DI 编号（多个用英文逗号分隔，如 1,9）')
+  }
+  const idLabel = ids.join('、')
   const timeoutMs = Math.max(5000, (Number(options.timeoutSec) || 120) * 1000)
   const intervalMs = Math.max(200, Number(options.pollMs) || 500)
   const start = Date.now()
@@ -928,11 +1048,10 @@ async function waitForForkDiReady(diId, options = {}) {
     if (io.ret_code != null && io.ret_code !== 0) {
       throw new Error('查询 I/O 失败: ' + (io.err_msg || 'ret_code=' + io.ret_code))
     }
-    const item = findDiEntry(io?.DI, diId)
-    if (item && item.status === true) return
+    if (forkDiSignalsAllReady(io?.DI, ids)) return
     await sleep(intervalMs)
   }
-  throw new Error(`等待 DI「${diId}」就绪超时（${timeoutMs / 1000}s），请确认已叉货且 I/O 配置正确`)
+  throw new Error(`等待 DI「${idLabel}」全部为 true 超时（${timeoutMs / 1000}s），请确认已叉货且 I/O 配置正确`)
 }
 
 const FORK_NUMERIC_KEYS = ['start_height', 'fork_mid_height', 'end_height', 'fork_dist']
@@ -955,6 +1074,15 @@ function applyPlanPathForkDefaultsToSegments(segments, planForm) {
       if (raw != null && raw !== '' && Number.isFinite(Number(raw))) {
         seg[key] = Number(raw)
       }
+    }
+  }
+}
+
+function mergeForkNumericFromForm(extra, form) {
+  for (const key of FORK_NUMERIC_KEYS) {
+    const raw = form[key]
+    if (raw != null && raw !== '' && Number.isFinite(Number(raw))) {
+      extra[key] = Number(raw)
     }
   }
 }
@@ -1043,6 +1171,152 @@ async function copySpecPath3066Preview() {
   }
 }
 
+/**
+ * 一键搬运 JSON 预览（与 handleOneKeyCarry 的路径构建规则一致，需路径规划接口）
+ * 未填写取货/放货点时仅生成占位说明，不请求后端。
+ */
+async function refreshOneKeyPreview() {
+  const pickId = String(oneKeyForm.value.pickId || '').trim()
+  const dropId = String(oneKeyForm.value.dropId || '').trim()
+  if (!pickId || !dropId) {
+    oneKeyPreviewJson.value = JSON.stringify(
+      { move_task_list: [], hint: '请填写取货点与放货点后点击「刷新预览」' },
+      null,
+      2,
+    )
+    return
+  }
+  try {
+    const plan = await api.planPath(pickId, dropId)
+    const routeSegs = plan?.move_task_list || []
+    if (!routeSegs.length) {
+      oneKeyPreviewJson.value = JSON.stringify(
+        { error: '规划失败：未找到路径' },
+        null,
+        2,
+      )
+      return
+    }
+    const baseTaskId = String(Date.now() % 100000000)
+    const full = []
+    const loadItem = {
+      source_id: 'SELF_POSITION',
+      id: pickId,
+      task_id: baseTaskId + '01',
+      operation: 'ForkLoad',
+    }
+    mergeForkNumericFromForm(loadItem, oneKeyForm.value)
+    full.push(loadItem)
+    const segs = routeSegs.map((seg, idx) => ({
+      source_id: seg.source_id,
+      id: seg.id,
+      task_id: baseTaskId + String(10 + idx),
+      operation: '',
+      start_height: '',
+      fork_mid_height: '',
+      end_height: '',
+      fork_dist: '',
+    }))
+    applyPlanPathForkDefaultsToSegments(segs, oneKeyForm.value)
+    for (const s of segs) full.push(s)
+    const last = full[full.length - 1]
+    last.operation = 'ForkUnload'
+    last.end_height = 0
+    const built = buildMoveTaskListFromSegments(full)
+    if (!built.ok) {
+      oneKeyPreviewJson.value = JSON.stringify({ error: built.error }, null, 2)
+      return
+    }
+    oneKeyPreviewJson.value = JSON.stringify({ move_task_list: built.list }, null, 2)
+  } catch (e) {
+    oneKeyPreviewJson.value = JSON.stringify(
+      { error: String(e?.message || e) },
+      null,
+      2,
+    )
+  }
+}
+
+async function handleOneKeyCarry() {
+  loading.value = true
+  try {
+    const pickId = String(oneKeyForm.value.pickId || '').trim()
+    const dropId = String(oneKeyForm.value.dropId || '').trim()
+    if (!pickId || !dropId) { log('请填写取货点与放货点', true); return }
+
+    const plan = await api.planPath(pickId, dropId)
+    const routeSegs = plan?.move_task_list || []
+    if (!routeSegs.length) { log('规划失败：未找到从取货点到放货点的路径', true); return }
+
+    const baseTaskId = String(Date.now() % 100000000)
+    const full = []
+
+    // 1) 先到取货点执行 ForkLoad
+    const loadItem = { source_id: 'SELF_POSITION', id: pickId, task_id: baseTaskId + '01', operation: 'ForkLoad' }
+    mergeForkNumericFromForm(loadItem, oneKeyForm.value)
+    full.push(loadItem)
+
+    // 2) 取货点 → 放货点：按规划段走（段上的默认货叉参数来自 oneKeyForm）
+    const segs = routeSegs.map((seg, idx) => ({
+      source_id: seg.source_id,
+      id: seg.id,
+      task_id: baseTaskId + String(10 + idx),
+      operation: '',
+      start_height: '',
+      fork_mid_height: '',
+      end_height: '',
+      fork_dist: '',
+    }))
+    applyPlanPathForkDefaultsToSegments(segs, oneKeyForm.value)
+    for (const s of segs) full.push(s)
+
+    // 3) 末段强制 ForkUnload end_height=0
+    const last = full[full.length - 1]
+    last.operation = 'ForkUnload'
+    last.end_height = 0
+
+    // 更新预览
+    oneKeyPreviewJson.value = JSON.stringify({ move_task_list: buildMoveTaskListFromSegments(full).list }, null, 2)
+
+    if (oneKeyForm.value.mode === 'A') {
+      const built = buildMoveTaskListFromSegments(full)
+      if (!built.ok) { log('一键搬运: ' + built.error, true); return }
+      if (built.autoOperationCount > 0) log(`一键搬运：已自动补 ${built.autoOperationCount} 段 operation=ForkHeight`, false, false)
+      const result = await api.robokitSpecifiedPathNavigation(built.list)
+      if (result?.ret_code === 0) log(`一键搬运(A) 已下发 ${built.list.length} 段`, false, true)
+      else log('一键搬运(A) 下发失败', true)
+      return
+    }
+
+    // 模式 B：先下发 ForkLoad 段，等 DI=true，再下发剩余段（含 ForkUnload）
+    const di = String(oneKeyForm.value.diId ?? '').trim()
+    if (!parseForkDiIdList(di).length) {
+      log('一键搬运(B) 请填写叉好信号 DI，多个用英文逗号分隔（如 1,9）', true)
+      return
+    }
+
+    const firstOnlyBuilt = buildMoveTaskListFromSegments([full[0]])
+    if (!firstOnlyBuilt.ok) { log('一键搬运(B): ' + firstOnlyBuilt.error, true); return }
+    const r1 = await api.robokitSpecifiedPathNavigation(firstOnlyBuilt.list)
+    if (r1?.ret_code !== 0) { log('一键搬运(B) ForkLoad 段下发失败', true); return }
+
+    log(`一键搬运(B) 已下发 ForkLoad 段，等待 DI「${parseForkDiIdList(di).join('、')}」全部为 true…`, false, true)
+    await waitForForkDiReady(di, { timeoutSec: oneKeyForm.value.timeoutSec, pollMs: oneKeyForm.value.pollMs })
+    log(`DI「${parseForkDiIdList(di).join('、')}」已全部就绪，下发剩余路径+ForkUnload`, false, true)
+
+    const restBuilt = buildMoveTaskListFromSegments(full.slice(1))
+    if (!restBuilt.ok) { log('一键搬运(B): ' + restBuilt.error, true); return }
+    if (restBuilt.autoOperationCount > 0) log(`一键搬运：已自动补 ${restBuilt.autoOperationCount} 段 operation=ForkHeight`, false, false)
+    const r2 = await api.robokitSpecifiedPathNavigation(restBuilt.list)
+    if (r2?.ret_code === 0) log(`一键搬运(B) 已下发剩余 ${restBuilt.list.length} 段`, false, true)
+    else log('一键搬运(B) 下发失败', true)
+  } catch (e) {
+    log('一键搬运错误: ' + (e.message || e), true)
+  } finally {
+    loading.value = false
+  }
+}
+
 function formatRobokitError(msg) {
   if (!msg || typeof msg !== 'string') return msg
   if (msg.includes('40009') || msg.includes('deprecated')) return msg + ' → 固件已弃用模式切换 API，抢占控制后可直接执行移动'
@@ -1054,18 +1328,35 @@ function formatRobokitError(msg) {
 
 async function handleConnect() {
   loading.value = true
+  log('正在连接机器人…', false, false)
   try {
-    const result = await api.robokitConnect(connectForm.value.host, connectForm.value.port)
+    const host = String(connectForm.value.host || '').trim()
+    const portRaw = connectForm.value.port
+    const port =
+      portRaw === '' || portRaw == null ? null : Number(portRaw)
+    const result = await api.robokitConnect(
+      host,
+      Number.isFinite(port) ? port : null
+    )
     if (result?.success) {
-      connectionStatus.value = { connected: true, host: connectForm.value.host }
-      log('连接成功', false, true)
-      await loadAllStatus()
+      connectionStatus.value = { connected: true, host }
+      log(result.message || '连接成功', false, true)
+      if (result.push_listener === false) {
+        log(result.message || '推送端口未连通', false, false)
+      }
       startPoll()
+      // 不在此处 await loadAllStatus：任一子接口挂起会导致整页一直停在「连接中」
+      loadAllStatus().catch((err) => {
+        log('连接后刷新状态失败: ' + (err.message || err), true)
+      })
     } else {
-      log('连接失败', true)
+      log(result?.message || '连接失败（success=false）', true)
     }
-  } catch (e) { log('连接错误: ' + e.message, true) }
-  finally { loading.value = false }
+  } catch (e) {
+    log('连接错误: ' + (e?.message || e), true)
+  } finally {
+    loading.value = false
+  }
 }
 
 async function handleDisconnect() {
@@ -1366,16 +1657,16 @@ async function handlePathNavigation() {
     if (!sourceId || !targetId) { log('请填写起点 source_id 与终点 id', true); return }
     if (navForm.value.pathNavMode === 'wait_fork') {
       const di = String(navForm.value.forkDiId ?? '').trim()
-      if (!di) {
-        log('「等待 DI 叉好」模式请填写叉好信号对应的 DI 编号（与监控区一致）', true)
+      if (!parseForkDiIdList(di).length) {
+        log('「等待 DI 叉好」请填写 DI 编号，多个用英文逗号分隔（如 1,9，须全部为 true）', true)
         return
       }
-      log(`等待 DI「${di}」status=true（叉好）…`, false, false)
+      log(`等待 DI「${parseForkDiIdList(di).join('、')}」全部为 true（叉好）…`, false, false)
       await waitForForkDiReady(di, {
         timeoutSec: navForm.value.forkWaitTimeoutSec,
         pollMs: navForm.value.forkPollMs,
       })
-      log(`DI「${di}」已就绪，下发 3051`, false, true)
+      log(`DI「${parseForkDiIdList(di).join('、')}」已全部就绪，下发 3051`, false, true)
     }
     const taskId = (navForm.value.taskId || '').trim() || null
     const extra = {}
@@ -1461,16 +1752,16 @@ async function handleSpecifiedPathNavigation() {
   try {
     if (navForm.value.specPathWaitFork) {
       const di = String(navForm.value.forkDiId ?? '').trim()
-      if (!di) {
-        log('已勾选「下发前先等待 DI」请填写 DI 编号', true)
+      if (!parseForkDiIdList(di).length) {
+        log('已勾选「下发前先等待 DI」请填写 DI 编号，多个用英文逗号分隔（如 1,9）', true)
         return
       }
-      log(`等待 DI「${di}」status=true 后再下发 3066…`, false, false)
+      log(`等待 DI「${parseForkDiIdList(di).join('、')}」全部为 true 后再下发 3066…`, false, false)
       await waitForForkDiReady(di, {
         timeoutSec: navForm.value.forkWaitTimeoutSec,
         pollMs: navForm.value.forkPollMs,
       })
-      log(`DI「${di}」已就绪`, false, true)
+      log(`DI「${parseForkDiIdList(di).join('、')}」已全部就绪`, false, true)
     }
     const built = buildMoveTaskListFromSegments(navForm.value.specifiedSegments)
     if (!built.ok) {
@@ -1710,6 +2001,7 @@ onMounted(() => {
   log('Robokit面板已初始化')
   startPoll()
   updateSpecPath3066Preview()
+  void refreshOneKeyPreview()
 })
 onUnmounted(() => {
   stopMoveHeartbeat()

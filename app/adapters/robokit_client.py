@@ -152,6 +152,11 @@ class RobokitClient:
             self._locks[port] = lock
 
         async with lock:
+            # 可能在等待 lock 的过程中，被其它协程关闭了该端口连接
+            if port not in self._connections or port not in self._writers:
+                success = await self.connect(port)
+                if not success or port not in self._connections or port not in self._writers:
+                    raise ConnectionError(f"无法连接到 {self.host}:{port}")
             reader = self._connections[port]
             writer = self._writers[port]
 
@@ -199,7 +204,21 @@ class RobokitClient:
 
             except asyncio.TimeoutError:
                 raise TimeoutError(f"请求超时 (端口={port}, 类型={msg_type})")
+            except asyncio.IncompleteReadError as e:
+                # 对端断开或网络闪断：读不到完整报文头/数据区
+                try:
+                    await self._close_port(port)
+                except Exception:
+                    pass
+                raise ConnectionError(f"连接已断开 (端口={port}, 类型={msg_type}): {e}")
+            except (ConnectionResetError, BrokenPipeError) as e:
+                try:
+                    await self._close_port(port)
+                except Exception:
+                    pass
+                raise ConnectionError(f"连接异常 (端口={port}, 类型={msg_type}): {e}")
             except Exception as e:
+                # 其它解析/协议错误
                 raise ValueError(f"解析响应失败: {e}")
 
     async def call_status(self, msg_type: int, params: dict | None = None) -> dict:
@@ -293,14 +312,16 @@ class RobokitClient:
         except Exception as e:
             print(f"推送监听异常: {e}")
         finally:
+            # 不在此处在 Cancelled/销毁阶段 await wait_closed()，否则可能触发
+            # RuntimeError: coroutine ignored GeneratorExit / Task destroyed pending
             self._push_reader = None
-            if self._push_writer:
+            push_writer = self._push_writer
+            self._push_writer = None
+            if push_writer is not None:
                 try:
-                    self._push_writer.close()
-                    await self._push_writer.wait_closed()
+                    push_writer.close()
                 except Exception:
                     pass
-                self._push_writer = None
 
     async def stop_push_listener(self) -> None:
         """停止推送监听"""

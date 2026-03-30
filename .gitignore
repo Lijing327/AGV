@@ -6,3 +6,8 @@
 # Node / Vue
 frontend/node_modules/
 frontend/dist/
+
+# 本地环境覆盖（自行从 .env.example 复制）
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.production.local
