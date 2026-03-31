@@ -1,12 +1,20 @@
 /**
  * API 配置与请求
  *
- * - 开发 (npm run dev)：默认走相对路径 /api，由 Vite 代理到 VITE_DEV_PROXY_TARGET（见 vite.config.js）
- * - 生产 (build)：优先使用 VITE_API_BASE（完整 URL，如 https://www.yonghongjituan.com:6715/api）
- *   未配置时：与当前页面同主机、端口 6715（与线上部署约定一致，可按需改 env）
+ * - 开发 (npm run dev)：相对路径 /api，由 Vite 代理到 VITE_DEV_PROXY_TARGET（见 vite.config.js）
+ * - 生产 (build)：
+ *   - 若设置 VITE_API_BASE（可为 https://host:端口/api 或相对路径 /AGV/api），优先使用
+ *   - 未设置：与静态资源同源，由 import.meta.env.BASE_URL 推出（如 base=/AGV/ → /AGV/api），
+ *     便于 Nginx 把 /AGV/api 反代到后端，避免跨域与混合内容
  *
- * 环境变量说明见 frontend/.env.example
+ * 环境变量说明见 frontend/.env.example、.env.production
  */
+function sameOriginApiBase() {
+  const base = import.meta.env.BASE_URL || '/'
+  const root = base.endsWith('/') ? base.slice(0, -1) : base
+  return root ? `${root}/api` : '/api'
+}
+
 function getApiBase() {
   const fromEnv = import.meta.env.VITE_API_BASE
   if (fromEnv !== undefined && String(fromEnv).trim() !== '') {
@@ -15,12 +23,7 @@ function getApiBase() {
   if (import.meta.env.DEV) {
     return '/api'
   }
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:'
-    const host = window.location.hostname
-    return `${protocol}//${host}:6715/api`
-  }
-  return '/api'
+  return sameOriginApiBase()
 }
 const API_BASE = getApiBase()
 

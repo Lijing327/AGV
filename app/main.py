@@ -38,11 +38,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS：允许前端跨域调用
+# CORS：允许前端跨域调用（allow_origins 为 * 时 allow_credentials 必须为 False，否则浏览器会拒绝）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 生产环境建议改为具体前端域名
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

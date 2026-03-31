@@ -5,14 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "vite build && node ./scripts/verify-dist-api.mjs",
+    "build:only": "vite build",
+    "preview": "vite preview",
+    "dev:online": "cross-env VITE_API_BASE=https://www.yonghongjituan.com:6715/api vite"
   },
   "dependencies": {
     "vue": "^3.4.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
+    "cross-env": "^7.0.3",
     "vite": "^5.0.0"
   }
 }

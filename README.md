@@ -98,9 +98,9 @@ npm run dev
 | 服务 | 地址 |
 |------|------|
 | 前端 | http://172.16.15.9:4014/agv |
-| 后端 API | http://172.16.15.9:8000 |
+| 后端 API | http://172.16.15.9:6715（线上对外端口以运维为准，见 `frontend/.env.production`） |
 
-**部署说明：** 前端已配置 `base: '/agv/'`，API 自动连接同主机 8000 端口，运维只需构建并部署，无需改配置
+**部署说明：** 前端 `base` 与 `VITE_PUBLIC_BASE` 一致（如 `/AGV/`）。生产环境默认请求同源路径 `/AGV/api`（`VITE_API_BASE` 留空），须在 **Nginx 将 `/AGV/api/` 反代到后端**（如本机 8000 的 `/api/`）。若浏览器直连后端端口，则在 `.env.production` 中设置完整 `VITE_API_BASE`
 
 ### 使用流程
 

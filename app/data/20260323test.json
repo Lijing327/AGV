@@ -21,7 +21,7 @@
           "x": 2.294,
           "y": 2.642
         },
-        "dir": -1.5685273987673038,
+        "dir": -1.5707963267948966,
         "property": [
           {
             "key": "spin",
@@ -94,7 +94,8 @@
             "value": "ZmFsc2U=",
             "boolValue": false
           }
-        ]
+        ],
+        "ignoreDir": true
       },
       {
         "className": "LocationMark",
@@ -127,7 +128,8 @@
             "value": "ZmFsc2U=",
             "boolValue": false
           }
-        ]
+        ],
+        "ignoreDir": true
       },
       {
         "className": "LocationMark",
@@ -915,7 +917,7 @@
           "x": 91.677,
           "y": 5.166
         },
-        "dir": -1.5707963267948966,
+        "dir": 1.5707963267948966,
         "property": [
           {
             "key": "spin",
@@ -1009,9 +1011,577 @@
             "boolValue": false
           }
         ]
+      },
+      {
+        "className": "ActionPoint",
+        "instanceName": "AP74",
+        "pos": {
+          "x": 51.995,
+          "y": 10.353
+        },
+        "dir": 1.5707963267948966,
+        "property": [
+          {
+            "key": "executor",
+            "type": "string",
+            "value": "Zm9yaw==",
+            "stringValue": "fork"
+          },
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM75",
+        "pos": {
+          "x": 51.995,
+          "y": 13.238
+        },
+        "dir": 1.5707963267948966,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM76",
+        "pos": {
+          "x": 59.338,
+          "y": 13.238
+        },
+        "dir": 1.5707963267948966,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "ActionPoint",
+        "instanceName": "AP78",
+        "pos": {
+          "x": 59.338,
+          "y": 10.525
+        },
+        "dir": 1.5707963267948966,
+        "property": [
+          {
+            "key": "executor",
+            "type": "string",
+            "value": "Zm9yaw==",
+            "stringValue": "fork"
+          },
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM79",
+        "pos": {
+          "x": 66.559,
+          "y": 13.238
+        },
+        "dir": 1.5707963267948966,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "ActionPoint",
+        "instanceName": "AP81",
+        "pos": {
+          "x": 66.559,
+          "y": 10.53
+        },
+        "dir": 1.5707963267948966,
+        "property": [
+          {
+            "key": "executor",
+            "type": "string",
+            "value": "Zm9yaw==",
+            "stringValue": "fork"
+          },
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM82",
+        "pos": {
+          "x": 73.948,
+          "y": 13.238
+        },
+        "dir": 1.5707963267948966,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "ActionPoint",
+        "instanceName": "AP84",
+        "pos": {
+          "x": 73.948,
+          "y": 10.556
+        },
+        "dir": 1.5707963267948966,
+        "property": [
+          {
+            "key": "executor",
+            "type": "string",
+            "value": "Zm9yaw==",
+            "stringValue": "fork"
+          },
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "LocationMark",
+        "instanceName": "LM85",
+        "pos": {
+          "x": 81.281,
+          "y": 13.238
+        },
+        "dir": 1.5707963267948966,
+        "property": [
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
+      },
+      {
+        "className": "ActionPoint",
+        "instanceName": "AP87",
+        "pos": {
+          "x": 81.281,
+          "y": 10.543
+        },
+        "dir": 1.5707963267948966,
+        "property": [
+          {
+            "key": "executor",
+            "type": "string",
+            "value": "Zm9yaw==",
+            "stringValue": "fork"
+          },
+          {
+            "key": "spin",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          }
+        ]
       }
     ],
     "advancedCurveList": [
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM85-AP87",
+        "startPos": {
+          "instanceName": "LM85",
+          "pos": {
+            "x": 81.281,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "AP87",
+          "pos": {
+            "x": 81.281,
+            "y": 10.543
+          }
+        },
+        "controlPos1": {
+          "x": 81.281,
+          "y": 12.34
+        },
+        "controlPos2": {
+          "x": 81.281,
+          "y": 11.441
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MQ==",
+            "int32Value": 1
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "maxspeed",
+            "type": "double",
+            "value": "MC4z",
+            "doubleValue": 0.3
+          },
+          {
+            "key": "goodsCollision",
+            "type": "bool",
+            "value": "dHJ1ZQ==",
+            "boolValue": true
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "AP87-LM85",
+        "startPos": {
+          "instanceName": "AP87",
+          "pos": {
+            "x": 81.281,
+            "y": 10.543
+          }
+        },
+        "endPos": {
+          "instanceName": "LM85",
+          "pos": {
+            "x": 81.281,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 81.281,
+          "y": 11.441
+        },
+        "controlPos2": {
+          "x": 81.281,
+          "y": 12.34
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM82-AP84",
+        "startPos": {
+          "instanceName": "LM82",
+          "pos": {
+            "x": 73.948,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "AP84",
+          "pos": {
+            "x": 73.948,
+            "y": 10.556
+          }
+        },
+        "controlPos1": {
+          "x": 73.948,
+          "y": 12.344
+        },
+        "controlPos2": {
+          "x": 73.948,
+          "y": 11.45
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MQ==",
+            "int32Value": 1
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "maxspeed",
+            "type": "double",
+            "value": "MC4z",
+            "doubleValue": 0.3
+          },
+          {
+            "key": "goodsCollision",
+            "type": "bool",
+            "value": "dHJ1ZQ==",
+            "boolValue": true
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "AP84-LM82",
+        "startPos": {
+          "instanceName": "AP84",
+          "pos": {
+            "x": 73.948,
+            "y": 10.556
+          }
+        },
+        "endPos": {
+          "instanceName": "LM82",
+          "pos": {
+            "x": 73.948,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 73.948,
+          "y": 11.45
+        },
+        "controlPos2": {
+          "x": 73.948,
+          "y": 12.344
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM79-AP81",
+        "startPos": {
+          "instanceName": "LM79",
+          "pos": {
+            "x": 66.559,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "AP81",
+          "pos": {
+            "x": 66.559,
+            "y": 10.53
+          }
+        },
+        "controlPos1": {
+          "x": 66.559,
+          "y": 12.335
+        },
+        "controlPos2": {
+          "x": 66.559,
+          "y": 11.433
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MQ==",
+            "int32Value": 1
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "maxspeed",
+            "type": "double",
+            "value": "MC4z",
+            "doubleValue": 0.3
+          },
+          {
+            "key": "goodsCollision",
+            "type": "bool",
+            "value": "dHJ1ZQ==",
+            "boolValue": true
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "AP81-LM79",
+        "startPos": {
+          "instanceName": "AP81",
+          "pos": {
+            "x": 66.559,
+            "y": 10.53
+          }
+        },
+        "endPos": {
+          "instanceName": "LM79",
+          "pos": {
+            "x": 66.559,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 66.559,
+          "y": 11.433
+        },
+        "controlPos2": {
+          "x": 66.559,
+          "y": 12.335
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM76-AP78",
+        "startPos": {
+          "instanceName": "LM76",
+          "pos": {
+            "x": 59.338,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "AP78",
+          "pos": {
+            "x": 59.338,
+            "y": 10.525
+          }
+        },
+        "controlPos1": {
+          "x": 59.338,
+          "y": 12.334
+        },
+        "controlPos2": {
+          "x": 59.338,
+          "y": 11.429
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MQ==",
+            "int32Value": 1
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "maxspeed",
+            "type": "double",
+            "value": "MC4z",
+            "doubleValue": 0.3
+          },
+          {
+            "key": "goodsCollision",
+            "type": "bool",
+            "value": "dHJ1ZQ==",
+            "boolValue": true
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "AP78-LM76",
+        "startPos": {
+          "instanceName": "AP78",
+          "pos": {
+            "x": 59.338,
+            "y": 10.525
+          }
+        },
+        "endPos": {
+          "instanceName": "LM76",
+          "pos": {
+            "x": 59.338,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 59.338,
+          "y": 11.429
+        },
+        "controlPos2": {
+          "x": 59.338,
+          "y": 12.334
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
       {
         "className": "DegenerateBezier",
         "instanceName": "LM2-LM3",
@@ -5574,86 +6144,6 @@
       },
       {
         "className": "DegenerateBezier",
-        "instanceName": "LM4-LM5",
-        "startPos": {
-          "instanceName": "LM4",
-          "pos": {
-            "x": 29.526,
-            "y": 13.238
-          }
-        },
-        "endPos": {
-          "instanceName": "LM5",
-          "pos": {
-            "x": 85.755,
-            "y": 13.238
-          }
-        },
-        "controlPos1": {
-          "x": 48.269,
-          "y": 13.238
-        },
-        "controlPos2": {
-          "x": 67.012,
-          "y": 13.238
-        },
-        "property": [
-          {
-            "key": "direction",
-            "type": "int",
-            "value": "MA==",
-            "int32Value": 0
-          },
-          {
-            "key": "movestyle",
-            "type": "int",
-            "value": "MA==",
-            "int32Value": 0
-          }
-        ]
-      },
-      {
-        "className": "DegenerateBezier",
-        "instanceName": "LM5-LM4",
-        "startPos": {
-          "instanceName": "LM5",
-          "pos": {
-            "x": 85.755,
-            "y": 13.238
-          }
-        },
-        "endPos": {
-          "instanceName": "LM4",
-          "pos": {
-            "x": 29.526,
-            "y": 13.238
-          }
-        },
-        "controlPos1": {
-          "x": 67.012,
-          "y": 13.238
-        },
-        "controlPos2": {
-          "x": 48.269,
-          "y": 13.238
-        },
-        "property": [
-          {
-            "key": "direction",
-            "type": "int",
-            "value": "MA==",
-            "int32Value": 0
-          },
-          {
-            "key": "movestyle",
-            "type": "int",
-            "value": "MA==",
-            "int32Value": 0
-          }
-        ]
-      },
-      {
-        "className": "DegenerateBezier",
         "instanceName": "LM19-LM55",
         "startPos": {
           "instanceName": "LM19",
@@ -5750,12 +6240,12 @@
           }
         },
         "controlPos1": {
-          "x": 5.301,
-          "y": 9.215
+          "x": 2.611,
+          "y": 12.048
         },
         "controlPos2": {
-          "x": 3.798,
-          "y": 5.929
+          "x": 2.397,
+          "y": 6.008
         },
         "property": [
           {
@@ -5790,19 +6280,19 @@
           }
         },
         "controlPos1": {
-          "x": 3.798,
-          "y": 5.929
+          "x": 2.397,
+          "y": 6.008
         },
         "controlPos2": {
-          "x": 5.301,
-          "y": 9.215
+          "x": 2.611,
+          "y": 12.048
         },
         "property": [
           {
             "key": "direction",
             "type": "int",
-            "value": "MA==",
-            "int32Value": 0
+            "value": "MQ==",
+            "int32Value": 1
           },
           {
             "key": "movestyle",
@@ -5834,8 +6324,8 @@
           "y": 13.104
         },
         "controlPos2": {
-          "x": 15.82,
-          "y": 12.993
+          "x": 15.825,
+          "y": 13.253
         },
         "property": [
           {
@@ -5849,6 +6339,12 @@
             "type": "int",
             "value": "MA==",
             "int32Value": 0
+          },
+          {
+            "key": "goodsCollision",
+            "type": "bool",
+            "value": "dHJ1ZQ==",
+            "boolValue": true
           }
         ]
       },
@@ -5870,8 +6366,8 @@
           }
         },
         "controlPos1": {
-          "x": 15.82,
-          "y": 12.993
+          "x": 15.825,
+          "y": 13.253
         },
         "controlPos2": {
           "x": 12.363,
@@ -5881,14 +6377,32 @@
           {
             "key": "direction",
             "type": "int",
-            "value": "MA==",
-            "int32Value": 0
+            "value": "MQ==",
+            "int32Value": 1
           },
           {
             "key": "movestyle",
             "type": "int",
             "value": "MA==",
             "int32Value": 0
+          },
+          {
+            "key": "maxspeed",
+            "type": "double",
+            "value": "MC40",
+            "doubleValue": 0.4
+          },
+          {
+            "key": "parkRequired",
+            "type": "bool",
+            "value": "ZmFsc2U=",
+            "boolValue": false
+          },
+          {
+            "key": "goodsCollision",
+            "type": "bool",
+            "value": "dHJ1ZQ==",
+            "boolValue": true
           }
         ]
       },
@@ -6561,8 +7075,8 @@
           {
             "key": "direction",
             "type": "int",
-            "value": "MA==",
-            "int32Value": 0
+            "value": "MQ==",
+            "int32Value": 1
           },
           {
             "key": "movestyle",
@@ -7011,6 +7525,578 @@
             "int32Value": 0
           }
         ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM75-AP74",
+        "startPos": {
+          "instanceName": "LM75",
+          "pos": {
+            "x": 51.995,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "AP74",
+          "pos": {
+            "x": 51.995,
+            "y": 10.353
+          }
+        },
+        "controlPos1": {
+          "x": 51.995,
+          "y": 12.276
+        },
+        "controlPos2": {
+          "x": 51.995,
+          "y": 11.315
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MQ==",
+            "int32Value": 1
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "maxspeed",
+            "type": "double",
+            "value": "MC4z",
+            "doubleValue": 0.3
+          },
+          {
+            "key": "goodsCollision",
+            "type": "bool",
+            "value": "dHJ1ZQ==",
+            "boolValue": true
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "AP74-LM75",
+        "startPos": {
+          "instanceName": "AP74",
+          "pos": {
+            "x": 51.995,
+            "y": 10.353
+          }
+        },
+        "endPos": {
+          "instanceName": "LM75",
+          "pos": {
+            "x": 51.995,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 51.995,
+          "y": 11.315
+        },
+        "controlPos2": {
+          "x": 51.995,
+          "y": 12.276
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM4-LM75",
+        "startPos": {
+          "instanceName": "LM4",
+          "pos": {
+            "x": 29.526,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "LM75",
+          "pos": {
+            "x": 51.995,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 37.016,
+          "y": 13.238
+        },
+        "controlPos2": {
+          "x": 44.505,
+          "y": 13.238
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM75-LM4",
+        "startPos": {
+          "instanceName": "LM75",
+          "pos": {
+            "x": 51.995,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "LM4",
+          "pos": {
+            "x": 29.526,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 44.505,
+          "y": 13.238
+        },
+        "controlPos2": {
+          "x": 37.016,
+          "y": 13.238
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM75-LM76",
+        "startPos": {
+          "instanceName": "LM75",
+          "pos": {
+            "x": 51.995,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "LM76",
+          "pos": {
+            "x": 59.338,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 54.443,
+          "y": 13.238
+        },
+        "controlPos2": {
+          "x": 56.89,
+          "y": 13.238
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM76-LM75",
+        "startPos": {
+          "instanceName": "LM76",
+          "pos": {
+            "x": 59.338,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "LM75",
+          "pos": {
+            "x": 51.995,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 56.89,
+          "y": 13.238
+        },
+        "controlPos2": {
+          "x": 54.443,
+          "y": 13.238
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM79-LM76",
+        "startPos": {
+          "instanceName": "LM79",
+          "pos": {
+            "x": 66.559,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "LM76",
+          "pos": {
+            "x": 59.338,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 64.152,
+          "y": 13.238
+        },
+        "controlPos2": {
+          "x": 61.745,
+          "y": 13.238
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM76-LM79",
+        "startPos": {
+          "instanceName": "LM76",
+          "pos": {
+            "x": 59.338,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "LM79",
+          "pos": {
+            "x": 66.559,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 61.745,
+          "y": 13.238
+        },
+        "controlPos2": {
+          "x": 64.152,
+          "y": 13.238
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM79-LM82",
+        "startPos": {
+          "instanceName": "LM79",
+          "pos": {
+            "x": 66.559,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "LM82",
+          "pos": {
+            "x": 73.948,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 69.022,
+          "y": 13.238
+        },
+        "controlPos2": {
+          "x": 71.485,
+          "y": 13.238
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM82-LM79",
+        "startPos": {
+          "instanceName": "LM82",
+          "pos": {
+            "x": 73.948,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "LM79",
+          "pos": {
+            "x": 66.559,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 71.485,
+          "y": 13.238
+        },
+        "controlPos2": {
+          "x": 69.022,
+          "y": 13.238
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM82-LM85",
+        "startPos": {
+          "instanceName": "LM82",
+          "pos": {
+            "x": 73.948,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "LM85",
+          "pos": {
+            "x": 81.281,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 76.392,
+          "y": 13.238
+        },
+        "controlPos2": {
+          "x": 78.837,
+          "y": 13.238
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM85-LM82",
+        "startPos": {
+          "instanceName": "LM85",
+          "pos": {
+            "x": 81.281,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "LM82",
+          "pos": {
+            "x": 73.948,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 78.837,
+          "y": 13.238
+        },
+        "controlPos2": {
+          "x": 76.392,
+          "y": 13.238
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM85-LM5",
+        "startPos": {
+          "instanceName": "LM85",
+          "pos": {
+            "x": 81.281,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "LM5",
+          "pos": {
+            "x": 85.755,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 82.772,
+          "y": 13.238
+        },
+        "controlPos2": {
+          "x": 84.264,
+          "y": 13.238
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
+      },
+      {
+        "className": "DegenerateBezier",
+        "instanceName": "LM5-LM85",
+        "startPos": {
+          "instanceName": "LM5",
+          "pos": {
+            "x": 85.755,
+            "y": 13.238
+          }
+        },
+        "endPos": {
+          "instanceName": "LM85",
+          "pos": {
+            "x": 81.281,
+            "y": 13.238
+          }
+        },
+        "controlPos1": {
+          "x": 84.264,
+          "y": 13.238
+        },
+        "controlPos2": {
+          "x": 82.772,
+          "y": 13.238
+        },
+        "property": [
+          {
+            "key": "direction",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          },
+          {
+            "key": "movestyle",
+            "type": "int",
+            "value": "MA==",
+            "int32Value": 0
+          }
+        ]
       }
     ]
   },
@@ -7314,9 +8400,107 @@
       "id": "LM64",
       "x": -81.218,
       "y": -29.529
+    },
+    {
+      "id": "AP74",
+      "x": 51.995,
+      "y": 10.353
+    },
+    {
+      "id": "LM75",
+      "x": 51.995,
+      "y": 13.238
+    },
+    {
+      "id": "LM76",
+      "x": 59.338,
+      "y": 13.238
+    },
+    {
+      "id": "AP78",
+      "x": 59.338,
+      "y": 10.525
+    },
+    {
+      "id": "LM79",
+      "x": 66.559,
+      "y": 13.238
+    },
+    {
+      "id": "AP81",
+      "x": 66.559,
+      "y": 10.53
+    },
+    {
+      "id": "LM82",
+      "x": 73.948,
+      "y": 13.238
+    },
+    {
+      "id": "AP84",
+      "x": 73.948,
+      "y": 10.556
+    },
+    {
+      "id": "LM85",
+      "x": 81.281,
+      "y": 13.238
+    },
+    {
+      "id": "AP87",
+      "x": 81.281,
+      "y": 10.543
     }
   ],
   "edges": [
+    {
+      "from": "LM85",
+      "to": "AP87",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "AP87",
+      "to": "LM85",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM82",
+      "to": "AP84",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "AP84",
+      "to": "LM82",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM79",
+      "to": "AP81",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "AP81",
+      "to": "LM79",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM76",
+      "to": "AP78",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "AP78",
+      "to": "LM76",
+      "bidirectional": true,
+      "capacity": 1
+    },
     {
       "from": "LM2",
       "to": "LM3",
@@ -8002,18 +9186,6 @@
       "capacity": 1
     },
     {
-      "from": "LM4",
-      "to": "LM5",
-      "bidirectional": true,
-      "capacity": 1
-    },
-    {
-      "from": "LM5",
-      "to": "LM4",
-      "bidirectional": true,
-      "capacity": 1
-    },
-    {
       "from": "LM19",
       "to": "LM55",
       "bidirectional": true,
@@ -8214,6 +9386,90 @@
     {
       "from": "LM42",
       "to": "LM64",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM75",
+      "to": "AP74",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "AP74",
+      "to": "LM75",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM4",
+      "to": "LM75",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM75",
+      "to": "LM4",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM75",
+      "to": "LM76",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM76",
+      "to": "LM75",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM79",
+      "to": "LM76",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM76",
+      "to": "LM79",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM79",
+      "to": "LM82",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM82",
+      "to": "LM79",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM82",
+      "to": "LM85",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM85",
+      "to": "LM82",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM85",
+      "to": "LM5",
+      "bidirectional": true,
+      "capacity": 1
+    },
+    {
+      "from": "LM5",
+      "to": "LM85",
       "bidirectional": true,
       "capacity": 1
     }
