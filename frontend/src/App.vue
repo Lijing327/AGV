@@ -4,13 +4,7 @@
     <header class="app-header">
       <div class="header-left">
         <div class="logo">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <rect x="2" y="8" width="24" height="14" rx="4" stroke="#3b82f6" stroke-width="2"/>
-            <circle cx="8" cy="22" r="2.5" stroke="#3b82f6" stroke-width="1.5" fill="#0b0f19"/>
-            <circle cx="20" cy="22" r="2.5" stroke="#3b82f6" stroke-width="1.5" fill="#0b0f19"/>
-            <path d="M10 13h8M10 17h5" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round"/>
-            <circle cx="21" cy="6" r="3" fill="#10b981"/>
-          </svg>
+          <img src="/logo.png" alt="系统标识" class="site-logo" />
         </div>
         <div class="header-title">
           <h1>AGV 调度管理系统</h1>
@@ -344,6 +338,11 @@ onUnmounted(() => {
   min-width: 240px;
 }
 .logo { display: flex; align-items: center; }
+.site-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
 .header-title h1 {
   font-size: 16px;
   font-weight: 600;

@@ -641,7 +641,7 @@
             <div class="card-head"><h4>路径导航 (3051)</h4></div>
             <p class="card-hint"><strong>仅用于单车/任务链测试</strong>，不能用于调度场景（否则速度不连续、不跟随路径等危险）。给定起点、终点站点名，机器人沿固定路径运行；起点可为 SELF_POSITION。</p>
             <p class="card-hint card-error">若<strong>路径导航失败</strong>或报 52702：① 确认地图上起点与终点<strong>有直接连线</strong>；② 若小车不在起点，起点填 <code>SELF_POSITION</code>；③ task_id 可选，若填须唯一。</p>
-            <div class="input-row-3">
+            <div v-if="navForm.pathNavMode !== 'pick_drop_3051'" class="input-row-3">
               <div class="form-field compact">
                 <label>起点 source_id</label>
                 <input v-model="navForm.sourceId" placeholder="如 LM2 或 SELF_POSITION" />
@@ -655,11 +655,26 @@
                 <input v-model="navForm.taskId" placeholder="可选" />
               </div>
             </div>
+            <div v-else class="input-row-3">
+              <div class="form-field compact">
+                <label>取货点 id</label>
+                <input v-model="navForm.pickDropPickId" placeholder="站点名，与地图一致" />
+              </div>
+              <div class="form-field compact">
+                <label>放货点 id</label>
+                <input v-model="navForm.pickDropDropId" placeholder="站点名，与地图一致" />
+              </div>
+              <div class="form-field compact">
+                <label class="muted-label">起点</label>
+                <input value="SELF_POSITION（固定）" readonly class="readonly-input" />
+              </div>
+            </div>
             <div class="form-field compact">
               <label>出发模式</label>
               <select v-model="navForm.pathNavMode" class="fork-mode-select">
                 <option value="direct">直接出发（不等待叉货信号）</option>
                 <option value="wait_fork">等待 DI 叉好后再出发</option>
+                <option value="pick_drop_3051">取放货：途中 DI 全 true 则去放货点；到取货点未装货则停止</option>
               </select>
             </div>
             <div v-if="navForm.pathNavMode === 'wait_fork'" class="input-row-3">
@@ -676,6 +691,41 @@
                 <input v-model.number="navForm.forkPollMs" type="number" min="200" step="100" />
               </div>
             </div>
+            <div v-if="navForm.pathNavMode === 'pick_drop_3051'" class="input-row-3">
+              <div class="form-field compact">
+                <label>装货就绪 DI (id)</label>
+                <input v-model="navForm.forkDiId" placeholder="两路如 1,9，须全部为 true" />
+              </div>
+              <div class="form-field compact">
+                <label>首段监测超时 (秒)</label>
+                <input v-model.number="navForm.pickDropTimeoutSec" type="number" min="10" step="1" />
+              </div>
+              <div class="form-field compact">
+                <label>轮询 (ms)</label>
+                <input v-model.number="navForm.forkPollMs" type="number" min="200" step="100" />
+              </div>
+            </div>
+            <div v-if="navForm.pathNavMode === 'pick_drop_3051'" class="input-row-4 fork-3051-heights">
+              <div class="form-field compact">
+                <label>取货段 start_height (m)</label>
+                <input v-model.number="navForm.pickDropLoadStartHeight" type="number" step="0.01" placeholder="ForkLoad 可选" />
+              </div>
+              <div class="form-field compact">
+                <label>fork_mid_height (m)</label>
+                <input v-model.number="navForm.pickDropLoadMidHeight" type="number" step="0.01" placeholder="可选" />
+              </div>
+              <div class="form-field compact">
+                <label>end_height (m)</label>
+                <input v-model.number="navForm.pickDropLoadEndHeight" type="number" step="0.01" placeholder="可选" />
+              </div>
+              <div class="form-field compact">
+                <label>fork_dist (m)</label>
+                <input v-model.number="navForm.pickDropLoadForkDist" type="number" step="0.01" placeholder="可选" />
+              </div>
+            </div>
+            <p v-if="navForm.pathNavMode === 'pick_drop_3051'" class="card-hint">
+              连续两次 <strong>3051</strong>：① <code>SELF_POSITION</code>→取货点（<code>ForkLoad</code>），轮询 I/O 与站点；② 两路 DI 均 <code>true</code> 视为装货完成，<strong>停止当前导航</strong>后再发 <code>SELF_POSITION</code>→放货点。若定位显示已到取货点而 DI 仍未就绪，则<strong>停止导航</strong>。下方「本段附带货叉 ForkUnload」作用于<strong>第二段</strong>放货点。
+            </p>
             <div class="fork-nav-options">
               <label class="fork-check">
                 <input type="checkbox" v-model="navForm.pathNavUnloadAtEnd" />
@@ -959,6 +1009,13 @@ const navForm = ref({
   target: '', type: 'point',
   sourceId: 'SELF_POSITION', targetId: 'LM1', taskId: '',
   pathNavMode: 'direct',
+  pickDropPickId: '',
+  pickDropDropId: '',
+  pickDropTimeoutSec: 300,
+  pickDropLoadStartHeight: '',
+  pickDropLoadMidHeight: '',
+  pickDropLoadEndHeight: '',
+  pickDropLoadForkDist: '',
   forkDiId: '',
   forkWaitTimeoutSec: 120,
   forkPollMs: 500,
@@ -1052,6 +1109,128 @@ async function waitForForkDiReady(diInput, options = {}) {
     await sleep(intervalMs)
   }
   throw new Error(`等待 DI「${idLabel}」全部为 true 超时（${timeoutMs / 1000}s），请确认已叉货且 I/O 配置正确`)
+}
+
+/** 与 loadLocation 一致，解析定位接口中的 data 嵌套 */
+function normalizeLocationFromApi(raw) {
+  if (!raw || typeof raw !== 'object') return {}
+  return raw.data && typeof raw.data === 'object' ? raw.data : raw
+}
+
+/** 取货段 ForkLoad 货叉数值并入 extra */
+function mergeForkNumericFromPickDropLoad(extra, form) {
+  const fields = [
+    ['start_height', form.pickDropLoadStartHeight],
+    ['fork_mid_height', form.pickDropLoadMidHeight],
+    ['end_height', form.pickDropLoadEndHeight],
+    ['fork_dist', form.pickDropLoadForkDist],
+  ]
+  for (const [key, raw] of fields) {
+    if (raw != null && raw !== '' && Number.isFinite(Number(raw))) {
+      extra[key] = Number(raw)
+    }
+  }
+}
+
+/**
+ * 首段 3051（去取货点）已下发后：轮询 DI 与 current_station。
+ * @returns {'di_ready' | 'at_pickup_no_load'}
+ */
+async function monitorPickLegForDiOrArrival(pickId, diInput, options = {}) {
+  const ids = parseForkDiIdList(diInput)
+  const pickNorm = String(pickId || '').trim()
+  const timeoutMs = Math.max(10000, (Number(options.timeoutSec) || 300) * 1000)
+  const intervalMs = Math.max(200, Number(options.pollMs) || 500)
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    const [io, locRaw] = await Promise.all([api.robokitGetIO(), api.robokitGetLocation()])
+    if (io?.ret_code != null && io.ret_code !== 0) {
+      throw new Error('查询 I/O 失败: ' + (io.err_msg || 'ret_code=' + io.ret_code))
+    }
+    if (forkDiSignalsAllReady(io?.DI, ids)) {
+      return 'di_ready'
+    }
+    const loc = normalizeLocationFromApi(locRaw)
+    const station = String(loc?.current_station ?? '').trim()
+    if (station === pickNorm) {
+      try {
+        await api.robokitStopNavigation()
+      } catch (_) { /* 已无导航任务时可能报错，忽略 */ }
+      return 'at_pickup_no_load'
+    }
+    await sleep(intervalMs)
+  }
+  try {
+    await api.robokitStopNavigation()
+  } catch (_) { /* ignore */ }
+  throw new Error(`取货段监测超时（${timeoutMs / 1000}s），已尝试停止导航`)
+}
+
+/** 3051 取放货：SELF_POSITION→取货(ForkLoad)+监测 → SELF_POSITION→放货 */
+async function runPickDrop3051Flow() {
+  const pickId = String(navForm.value.pickDropPickId || '').trim()
+  const dropId = String(navForm.value.pickDropDropId || '').trim()
+  const di = String(navForm.value.forkDiId ?? '').trim()
+  if (!pickId || !dropId) {
+    log('取放货模式请填写取货点与放货点站点 id', true)
+    return
+  }
+  if (!parseForkDiIdList(di).length) {
+    log('请填写装货就绪 DI（多个用英文逗号分隔，须全部为 true）', true)
+    return
+  }
+  try {
+    await api.robokitSetMode(1)
+  } catch (_) { /* 40009 等忽略 */ }
+
+  const extraLoad = { operation: 'ForkLoad' }
+  mergeForkNumericFromPickDropLoad(extraLoad, navForm.value)
+  const baseId = String(Date.now() % 100000000)
+  const taskId1 = `${baseId}P`
+  const taskId2 = `${baseId}D`
+
+  log(`取放货(3051)：下发首段 SELF_POSITION → ${pickId}（ForkLoad）…`, false, false)
+  const r1 = await api.robokitPathNavigation('SELF_POSITION', pickId, taskId1, extraLoad)
+  if (r1?.ret_code !== 0) {
+    log(`首段 3051 下发失败: ${r1?.err_msg || 'ret_code=' + (r1?.ret_code ?? '?')}`, true)
+    return
+  }
+
+  const outcome = await monitorPickLegForDiOrArrival(pickId, di, {
+    timeoutSec: navForm.value.pickDropTimeoutSec,
+    pollMs: navForm.value.forkPollMs,
+  })
+
+  if (outcome === 'at_pickup_no_load') {
+    log(`已到取货点「${pickId}」但 DI「${parseForkDiIdList(di).join('、')}」未全部就绪，已停止导航`, true)
+    return
+  }
+
+  log(`装货 DI 已就绪，停止当前导航并下发第二段 SELF_POSITION → ${dropId}…`, false, true)
+  try {
+    await api.robokitStopNavigation()
+  } catch (_) { /* ignore */ }
+  await sleep(400)
+
+  const extraDrop = {}
+  if (navForm.value.pathNavUnloadAtEnd) {
+    extraDrop.operation = 'ForkUnload'
+    mergeForkNumericFromPathNavForm(extraDrop, navForm.value)
+    if (extraDrop.end_height === undefined) {
+      extraDrop.end_height = 0
+    }
+  }
+  const r2 = await api.robokitPathNavigation(
+    'SELF_POSITION',
+    dropId,
+    taskId2,
+    Object.keys(extraDrop).length ? extraDrop : null,
+  )
+  if (r2?.ret_code === 0) {
+    log(`取放货(3051) 第二段已下发: SELF_POSITION → ${dropId}`, false, true)
+  } else {
+    log(`第二段 3051 下发失败: ${r2?.err_msg || 'ret_code=' + (r2?.ret_code ?? '?')}`, true)
+  }
 }
 
 const FORK_NUMERIC_KEYS = ['start_height', 'fork_mid_height', 'end_height', 'fork_dist']
@@ -1652,6 +1831,10 @@ async function handleMoveTo() {
 async function handlePathNavigation() {
   loading.value = true
   try {
+    if (navForm.value.pathNavMode === 'pick_drop_3051') {
+      await runPickDrop3051Flow()
+      return
+    }
     const sourceId = (navForm.value.sourceId || '').trim()
     const targetId = (navForm.value.targetId || '').trim()
     if (!sourceId || !targetId) { log('请填写起点 source_id 与终点 id', true); return }
@@ -2233,6 +2416,16 @@ onUnmounted(() => {
 .fork-di-row { margin-top: 4px; }
 .fork-height-row { margin-bottom: 8px; }
 .fork-3051-heights { margin-top: 6px; }
+.readonly-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-subtle, #2a3344);
+  border-radius: 6px;
+  background: var(--bg-muted, rgba(0, 0, 0, 0.2));
+  color: var(--text-muted, #8b96a8);
+  font-size: 12px;
+}
+.muted-label { color: var(--text-muted, #8b96a8); }
 
 .plan-3066-preview {
   margin-top: 14px;
