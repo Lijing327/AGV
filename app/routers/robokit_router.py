@@ -1031,7 +1031,7 @@ async def download_map(map_name: str = Body(..., embed=True)):
 
 @router.post("/call")
 async def call_api(
-    port: int = Body(..., embed=True, description="端口号: 19204状态, 19205控制, 19206导航, 19207配置"),
+    port: int = Body(..., embed=True, description="端口号: 19204状态, 19205控制, 19206导航, 19207配置, 19210其他API"),
     msg_type: int = Body(..., embed=True, description="API编号/消息类型"),
     params: dict = Body(None, embed=True, description="请求参数")
 ):

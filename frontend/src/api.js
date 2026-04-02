@@ -566,3 +566,100 @@ export async function robokitCall(port, msgType, params = null) {
   })
   return r.ok ? r.json() : null
 }
+
+/**
+ * 其他 API（19210）设置货叉高度 — robot_other_set_fork_height_req
+ * 编号 6040 (0x1798)；响应 16040。指令立即返回，到位需查状态 API 1028 或 1100 的 fork_height_in_place。
+ */
+export const ROBOKIT_MSG_SET_FORK_HEIGHT = 6040
+
+/**
+ * 设置货叉高度（默认端口 19210「其他 API」）
+ * @param {Record<string, unknown>} params 请求体须含 height（单位 m；地牛类设备文档载 1=上升/0=下降）
+ * @param {number} [port=19210]
+ */
+export async function robokitSetForkHeight(params = {}, port = 19210) {
+  const p = params && typeof params === 'object' ? params : {}
+  const r = await fetch(`${API_BASE}/robokit/call`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ port, msg_type: ROBOKIT_MSG_SET_FORK_HEIGHT, params: p }),
+  })
+  const data = await r.json().catch(() => ({}))
+  const tag = String(ROBOKIT_MSG_SET_FORK_HEIGHT)
+  if (!r.ok) throw new Error(data.detail || `设置货叉高度(${tag}) 请求失败 ${r.status}`)
+  if (data.ret_code != null && data.ret_code !== 0) {
+    throw new Error(data.err_msg || `设置货叉高度(${tag}) 失败 ret_code=${data.ret_code}`)
+  }
+  return data
+}
+
+/** 状态 API 端口（查询 fork_height_in_place） */
+export const ROBOKIT_PORT_STATUS = 19204
+
+/**
+ * 查询 fork_height_in_place（文档：状态口 1028 或 1100，端口 19204）
+ * @param {{ prefer?: 'auto' | '1100' | '1028' }} options prefer：先试哪条状态 API
+ * @returns {Promise<{ fork_height_in_place: boolean, sourceMsgType: number, raw: object } | null>}
+ */
+export async function robokitQueryForkHeightState(options = {}) {
+  let order = [1100, 1028]
+  const p = options.prefer
+  if (p === 1028 || p === '1028') {
+    order = [1028, 1100]
+  } else if (p === 1100 || p === '1100') {
+    order = [1100, 1028]
+  }
+  for (const msgType of order) {
+    try {
+      const raw = await robokitCall(ROBOKIT_PORT_STATUS, msgType, {})
+      if (!raw || typeof raw !== 'object') continue
+      if (raw.ret_code != null && raw.ret_code !== 0) continue
+      const d = raw.data != null && typeof raw.data === 'object' ? raw.data : raw
+      if (d && typeof d === 'object' && Object.prototype.hasOwnProperty.call(d, 'fork_height_in_place')) {
+        return {
+          fork_height_in_place: !!d.fork_height_in_place,
+          sourceMsgType: msgType,
+          raw: d,
+        }
+      }
+    } catch (_) {
+      continue
+    }
+  }
+  return null
+}
+
+/**
+ * 6040 下发后轮询直至 fork_height_in_place === true
+ * @param {{ timeoutSec?: number, pollMs?: number, preferStatus?: 'auto' | '1100' | '1028' }} options
+ * @returns {Promise<{ ok: boolean, reason?: 'no_field' | 'timeout_not_in_place' }>}
+ */
+export async function robokitWaitForkHeightInPlace(options = {}) {
+  const timeoutMs = Math.max(2000, (Number(options.timeoutSec) || 60) * 1000)
+  const pollMs = Math.max(150, Number(options.pollMs) || 300)
+  const prefer = options.preferStatus === 'auto' || options.preferStatus == null
+    ? undefined
+    : options.preferStatus
+  const start = Date.now()
+  let sawField = false
+  while (Date.now() - start < timeoutMs) {
+    const st = await robokitQueryForkHeightState(prefer != null ? { prefer } : {})
+    if (st) {
+      sawField = true
+      if (st.fork_height_in_place === true) {
+        return { ok: true }
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, pollMs))
+  }
+  if (!sawField) {
+    return { ok: false, reason: 'no_field' }
+  }
+  return { ok: false, reason: 'timeout_not_in_place' }
+}
+
+/** @deprecated 已由「设置货叉高度」替代，请使用 robokitSetForkHeight */
+export async function robokitForkHeightPreset6073(params = {}, port = 19210) {
+  return robokitSetForkHeight(params, port)
+}
