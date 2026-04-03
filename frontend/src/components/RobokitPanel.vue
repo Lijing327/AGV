@@ -1366,6 +1366,29 @@ async function isRobotAtStation(stationId) {
   }
 }
 
+/**
+ * 等待导航任务完成：轮询导航状态（1020）
+ * 约定：当返回里 `task_status === 4` 时认为任务完成
+ */
+async function waitForNavigationTaskCompleted(expectedTaskStatus = 4, options = {}) {
+  const timeoutSec = Number(options.timeoutSec) || 120
+  const pollMs = Number(options.pollMs) || 500
+  const timeoutMs = Math.max(5000, timeoutSec * 1000)
+  const intervalMs = Math.max(200, pollMs)
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    const navData = await api.robokitGetNavStatus().catch(() => null)
+    const raw = navData?.task_status ?? navData?.taskStatus ?? navData?.status
+    if (raw !== undefined && raw !== null) {
+      const st = Number(raw)
+      if (Number.isFinite(st) && st === Number(expectedTaskStatus)) return navData
+    }
+    await sleep(intervalMs)
+  }
+  const cond = `task_status=${expectedTaskStatus}`
+  throw new Error(`等待导航任务完成（1020 返回 ${cond}）超时（${timeoutMs / 1000}s）`)
+}
+
 /** 取货段 ForkLoad 货叉数值并入 extra */
 function mergeForkNumericFromPickDropLoad(extra, form) {
   const fields = [
@@ -2003,6 +2026,11 @@ async function handleOneKeyCarry() {
         if (r1?.ret_code !== 0) { log('一键搬运(A) 首段 3051 下发失败', true); return }
         log(`一键搬运(A) 首段已下发: SELF_POSITION→${pickId}`, false, true)
       }
+      log('一键搬运(A)：等待导航任务完成（1020 task_status=4）…', false, true)
+      await waitForNavigationTaskCompleted(4, {
+        timeoutSec: oneKeyForm.value.timeoutSec,
+        pollMs: oneKeyForm.value.pollMs,
+      })
       if (oneKeyForm.value.preDelivery6073) {
         const h6073 = resolveOneKey6073Height(oneKeyForm.value)
         const ok6073 = await runPreDeliverySetForkHeight(h6073, '一键搬运(A)')
@@ -2043,15 +2071,15 @@ async function handleOneKeyCarry() {
       })
       log(`DI「${parseForkDiIdList(di).join('、')}」已满足（${diCondShort}），连续下发送货段 3051（不取消当前导航）`, false, true)
     } else {
-      // 未配置 DI：两段之间仍先取消/停止，减少任务链重叠类异常
-      try {
-        await api.robokitCancelNavigation()
-      } catch (_) { /* ignore */ }
-      try {
-        await api.robokitStopNavigation()
-      } catch (_) { /* ignore */ }
-      await sleep(300)
+      // 未配置 DI：不提前取消/停止（避免打断首段完成判断），直接等待 1020 task_status=4
+      log('一键搬运(B)：未配置 DI，将等待导航任务完成（1020 task_status=4）后下发送货段', false, false)
     }
+
+    log('一键搬运(B)：等待导航任务完成（1020 task_status=4）…', false, true)
+    await waitForNavigationTaskCompleted(4, {
+      timeoutSec: oneKeyForm.value.timeoutSec,
+      pollMs: oneKeyForm.value.pollMs,
+    })
 
     if (oneKeyForm.value.preDelivery6073) {
       const h6073 = resolveOneKey6073Height(oneKeyForm.value)
