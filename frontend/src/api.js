@@ -632,8 +632,16 @@ export async function robokitQueryForkHeightState(options = {}) {
 
 /**
  * 6040 下发后轮询直至 fork_height_in_place === true
- * @param {{ timeoutSec?: number, pollMs?: number, preferStatus?: 'auto' | '1100' | '1028' }} options
- * @returns {Promise<{ ok: boolean, reason?: 'no_field' | 'timeout_not_in_place' }>}
+ * @param {{
+ *   timeoutSec?: number,
+ *   pollMs?: number,
+ *   preferStatus?: 'auto' | '1100' | '1028',
+ *   commandIssuedAt?: number,
+ *   minMsBeforeAcceptTrue?: number,
+ *   trySeeFalseFirst?: boolean,
+ *   falseFirstMaxMs?: number,
+ * }} options commandIssuedAt：下发 6040 时刻；minMsBeforeAcceptTrue：该时间后才接受 true；trySeeFalseFirst：先等一次 in_place 变 false
+ * @returns {Promise<{ ok: boolean, reason?: 'no_field' | 'timeout_not_in_place', sawFalseAfterCommand?: boolean }>}
  */
 export async function robokitWaitForkHeightInPlace(options = {}) {
   const timeoutMs = Math.max(2000, (Number(options.timeoutSec) || 60) * 1000)
@@ -641,22 +649,57 @@ export async function robokitWaitForkHeightInPlace(options = {}) {
   const prefer = options.preferStatus === 'auto' || options.preferStatus == null
     ? undefined
     : options.preferStatus
+  const commandIssuedAt =
+    options.commandIssuedAt != null && Number.isFinite(Number(options.commandIssuedAt))
+      ? Number(options.commandIssuedAt)
+      : null
+  const minMsBeforeAcceptTrue = Math.max(0, Number(options.minMsBeforeAcceptTrue) || 0)
+  const trySeeFalseFirst = !!options.trySeeFalseFirst && commandIssuedAt != null
+  const falseFirstMaxMs = Math.max(200, Number(options.falseFirstMaxMs) || 3500)
+
   const start = Date.now()
   let sawField = false
+  const queryOpts = prefer != null ? { prefer } : {}
+
+  let sawFalseAfterCommand = false
+  if (trySeeFalseFirst) {
+    const phase1End = Math.min(start + falseFirstMaxMs, start + timeoutMs)
+    while (Date.now() < phase1End && Date.now() - start < timeoutMs) {
+      const st = await robokitQueryForkHeightState(queryOpts)
+      if (st) {
+        sawField = true
+        if (st.fork_height_in_place === false) {
+          sawFalseAfterCommand = true
+          break
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, pollMs))
+    }
+  }
+
   while (Date.now() - start < timeoutMs) {
-    const st = await robokitQueryForkHeightState(prefer != null ? { prefer } : {})
+    const st = await robokitQueryForkHeightState(queryOpts)
     if (st) {
       sawField = true
       if (st.fork_height_in_place === true) {
-        return { ok: true }
+        if (commandIssuedAt != null && minMsBeforeAcceptTrue > 0) {
+          const elapsed = Date.now() - commandIssuedAt
+          if (elapsed < minMsBeforeAcceptTrue) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, Math.min(pollMs, minMsBeforeAcceptTrue - elapsed + 50)),
+            )
+            continue
+          }
+        }
+        return { ok: true, sawFalseAfterCommand }
       }
     }
     await new Promise((resolve) => setTimeout(resolve, pollMs))
   }
   if (!sawField) {
-    return { ok: false, reason: 'no_field' }
+    return { ok: false, reason: 'no_field', sawFalseAfterCommand }
   }
-  return { ok: false, reason: 'timeout_not_in_place' }
+  return { ok: false, reason: 'timeout_not_in_place', sawFalseAfterCommand }
 }
 
 /** @deprecated 已由「设置货叉高度」替代，请使用 robokitSetForkHeight */

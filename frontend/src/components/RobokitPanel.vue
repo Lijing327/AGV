@@ -50,14 +50,34 @@
         </button>
       </div>
 
-      <!-- 内容区 -->
-      <div class="panel-content">
-
-        
-        <OverviewPanel v-if="activeGroup === 'overview'" />
-        <ControlPanel v-if="activeGroup === 'control'" />
-        <MonitorPanel v-if="activeGroup === 'monitor'" />
-        <NavigationPanel v-if="activeGroup === 'navigation'" />
+      <!-- 主内容 + 底部日志（各 Tab 共用） -->
+      <div class="panel-main">
+        <div class="panel-content">
+          <OverviewPanel v-if="activeGroup === 'overview'" />
+          <ControlPanel v-if="activeGroup === 'control'" />
+          <MonitorPanel v-if="activeGroup === 'monitor'" />
+          <NavigationPanel v-if="activeGroup === 'navigation'" />
+        </div>
+        <div class="log-section">
+          <div class="log-head">
+            <h4>操作日志</h4>
+            <span class="log-count" v-if="logs.length">{{ logs.length }}</span>
+          </div>
+          <div class="log-list">
+            <template v-if="logs.length">
+              <div
+                v-for="(entry, i) in logs"
+                :key="i"
+                class="log-entry"
+                :class="{ error: entry.error, success: entry.success }"
+              >
+                <span class="log-time">[{{ entry.time }}]</span>
+                <span class="log-msg">{{ entry.message }}</span>
+              </div>
+            </template>
+            <div v-else class="empty-hint">暂无日志</div>
+          </div>
+        </div>
       </div>
     </template>
   </div>
@@ -126,15 +146,11 @@ const {
   waitForNavigationTaskCompleted,
   mergeForkNumericFromPickDropLoad,
   monitorPickLegForDiOrArrival,
-  runPickDrop3051Flow,
   FORK_NUMERIC_KEYS,
   mergeForkNumericFromSeg,
   applyPlanPathForkDefaultsToSegments,
   mergeForkNumericFromForm,
   mergeOneKeyForkNumeric,
-  resolveOneKey6073Height,
-  resolvePickDrop6073Height,
-  resolveSpecPath6073Height,
   runPreDeliverySetForkHeight,
   sendMoveTaskListBy3051,
   sendTwoLegBy3051Self,
@@ -270,9 +286,19 @@ const {
 .tab-icon { display: flex; }
 .tab-label { white-space: nowrap; }
 
+/* 主区域：上可滚动内容，下固定日志 */
+.panel-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 /* 内容区 */
 .panel-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 12px;
@@ -654,7 +680,9 @@ const {
 .log-head h4 { flex: 1; font-size: 12px; font-weight: 600; color: var(--text-muted); }
 .log-count { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
 .log-list {
-  max-height: 120px; overflow-y: auto; padding: 0 12px 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0 12px 10px;
 }
 .log-entry {
   display: flex; gap: 8px; font-size: 11px; margin-bottom: 3px;
