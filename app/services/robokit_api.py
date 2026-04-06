@@ -306,50 +306,19 @@ class RobotControlAPI:
         return await self.client.call_config(API_TAKE_CONTROL)
 
 
-# ==================== 机器人导航 API (3000-3999) ====================
-
 class RobotNavigationAPI:
-    """机器人导航API - 端口19206"""
-
     def __init__(self, client: RobokitClient):
         self.client = client
 
     async def path_navigation(self, path_id: int) -> dict:
-        """
-        路径导航
-
-        API编号: 3051
-        响应编号: 13051
-
-        Args:
-            path_id: 路径ID
-
-        Returns:
-            响应结果
-        """
         return await self.client.call_navigation(3051, {
             "path_id": path_id
         })
 
     async def specified_path_navigation(self, path_id: int) -> dict:
-        """
-        指定路径导航
-
-        API编号: 3066，端口19206
-        """
         return await self.client.call_navigation(3066, {"path_id": path_id})
 
     async def translate(self, dist: float, vx: float = None, vy: float = None, mode: int = 0) -> dict:
-        """
-        平动：以固定速度直线运动固定距离
-
-        API编号: 3055，端口19206
-        Args:
-            dist: 直线运动距离 m，绝对值
-            vx: 可选，X 方向速度 m/s
-            vy: 可选，Y 方向速度 m/s
-            mode: 0=里程模式 1=定位模式
-        """
         params = {"dist": dist, "mode": mode}
         if vx is not None:
             params["vx"] = vx
@@ -358,58 +327,18 @@ class RobotNavigationAPI:
         return await self.client.call_navigation(3055, params)
 
     async def stop_navigation(self) -> dict:
-        """
-        停止导航
-
-        API编号: 3052
-        响应编号: 13052
-
-        Returns:
-            响应结果
-        """
         return await self.client.call_navigation(3052)
 
     async def move_to(self, target: str, target_type: str = "point") -> dict:
-        """
-        移动到目标点
-
-        API编号: 3061
-        响应编号: 13061
-
-        Args:
-            target: 目标名称(点ID或区域ID)
-            target_type: 目标类型 ("point" 或 "area")
-
-        Returns:
-            响应结果
-        """
         return await self.client.call_navigation(3061, {
             "target": target,
             "type": target_type
         })
 
     async def get_navigation_status(self) -> dict:
-        """
-        查询导航状态
-
-        API编号: 1020 (状态API)
-        响应编号: 11020
-
-        Returns:
-            导航状态
-        """
         return await self.client.call_status(1020)
 
     async def get_location_status(self) -> dict:
-        """
-        查询定位状态
-
-        API编号: 1021 (状态API)
-        响应编号: 11021
-
-        Returns:
-            定位状态
-        """
         return await self.client.call_status(1021)
 
 
