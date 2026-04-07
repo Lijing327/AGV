@@ -23,3 +23,7 @@ frontend/src/components/script_part.js
 
 # 本地生成目录
 out/
+
+# 忽略压缩包与 qwen 本地目录
+*.rar
+.qwen/
