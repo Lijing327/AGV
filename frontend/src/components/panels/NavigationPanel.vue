@@ -47,6 +47,12 @@
                 <input v-model.number="oneKeyForm.pollMs" type="number" min="200" step="100" />
               </div>
             </div>
+            <div class="fork-nav-options one-key-pick-recognize">
+              <label class="fork-check">
+                <input type="checkbox" v-model="oneKeyForm.pickRecognize" />
+                取货段携带 recognize（路径导航 3051，与 ForkLoad/纯导航等配合见《API接口》路径导航说明）
+              </label>
+            </div>
             <template v-if="oneKeyForm.oneKeyScheme === 'fork_in_3051'">
               <h5 class="nav-subcard-title">取货段 ForkLoad</h5>
               <div class="input-row-3 fork-height-row plan-fork-defaults">

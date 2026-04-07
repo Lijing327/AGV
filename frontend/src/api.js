@@ -315,7 +315,7 @@ export async function robokitEmergencyStop() {
  * @param {string} sourceId
  * @param {string} targetId
  * @param {string|null} taskId
- * @param {Record<string, unknown>|null} extra 可选，如货叉 { operation: 'ForkUnload', end_height: 0 } 等会并入请求体
+ * @param {Record<string, unknown>|null} extra 可选，如货叉 { operation: 'ForkLoad', start_height }、{ recognize: true }（路径导航文档）等并入请求体
  */
 export async function robokitPathNavigation(sourceId, targetId, taskId = null, extra = null) {
   const body = { source_id: sourceId, target_id: targetId }

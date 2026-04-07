@@ -64,6 +64,8 @@ export const oneKeyForm = ref({
   drop6040Height: '',
   /** 送货段 3051 完成后再发 6040（常用 0 降叉）；留空不执行 */
   afterDrop6040Height: '',
+  /** 取货段 3051 请求体是否携带 recognize:true（见 API 文档路径导航/货叉 ForkLoad 等说明） */
+  pickRecognize: false,
   showPreview: false,
 })
 export const oneKeyPreviewJson = ref('')
@@ -541,6 +543,12 @@ export function mergeOneKeyForkNumeric(extra, form, part = 'pick') {
   }
 }
 
+/** 路径导航 3051 取货段：文档中可与 ForkLoad 等一并下发的 recognize（bool） */
+export function applyPickRecognizeToPathNavBody(body, form) {
+  if (!body || typeof body !== 'object' || !form || form.pickRecognize !== true) return
+  body.recognize = true
+}
+
 function oneKeyOptional6040Height(raw) {
   if (raw == null || raw === '') return null
   const n = Number(raw)
@@ -758,10 +766,16 @@ export async function refreshOneKeyPreview() {
             body: { height: pickH6040 },
           })
         }
+        const pickNavBody = {
+          source_id: 'SELF_POSITION',
+          id: pickId,
+          task_id: baseTaskId + '01',
+        }
+        applyPickRecognizeToPathNavBody(pickNavBody, oneKeyForm.value)
         requests.push({
           api: 3051,
           description: '取货段纯导航（无 operation / 无货叉高度字段）',
-          body: { source_id: 'SELF_POSITION', id: pickId, task_id: baseTaskId + '01' },
+          body: pickNavBody,
         })
       }
       if (dropId) {
@@ -793,6 +807,7 @@ export async function refreshOneKeyPreview() {
         operation: 'ForkLoad',
       }
       mergeOneKeyForkNumeric(req1, oneKeyForm.value, 'pick')
+      applyPickRecognizeToPathNavBody(req1, oneKeyForm.value)
       requests.push({ api: 3051, description: '取货段（仅取货 / 全程首段）', body: req1 })
     }
     if (!nav6040 && dropId) {
@@ -863,6 +878,8 @@ export async function handleOneKeyCarryPickOnly() {
       operation: 'ForkLoad',
     }
     mergeOneKeyForkNumeric(req1Fork, oneKeyForm.value, 'pick')
+    applyPickRecognizeToPathNavBody(req1Nav, oneKeyForm.value)
+    applyPickRecognizeToPathNavBody(req1Fork, oneKeyForm.value)
 
     oneKeyPreviewJson.value = JSON.stringify(
       {
@@ -884,8 +901,15 @@ export async function handleOneKeyCarryPickOnly() {
         const ok = await runPreDeliverySetForkHeight(pickH6040, '一键搬运·取货前 6040')
         if (!ok) return
       }
-      const pickExtra = nav6040 ? null : { operation: 'ForkLoad' }
-      if (!nav6040) mergeOneKeyForkNumeric(pickExtra, oneKeyForm.value, 'pick')
+      let pickExtra = null
+      if (nav6040 && oneKeyForm.value.pickRecognize === true) {
+        pickExtra = { recognize: true }
+      }
+      if (!nav6040) {
+        pickExtra = { operation: 'ForkLoad' }
+        mergeOneKeyForkNumeric(pickExtra, oneKeyForm.value, 'pick')
+        applyPickRecognizeToPathNavBody(pickExtra, oneKeyForm.value)
+      }
       const r1 = await api.robokitPathNavigation('SELF_POSITION', pickId, taskId1, pickExtra)
       if (r1?.ret_code !== 0) {
         log('仅取货 3051 下发失败', true)
@@ -1031,6 +1055,8 @@ export async function handleOneKeyCarry() {
       operation: 'ForkLoad',
     }
     mergeOneKeyForkNumeric(req1Fork, oneKeyForm.value, 'pick')
+    applyPickRecognizeToPathNavBody(req1Nav, oneKeyForm.value)
+    applyPickRecognizeToPathNavBody(req1Fork, oneKeyForm.value)
 
     const op2 = String(oneKeyForm.value.drop_operation || 'ForkUnload')
     const req2Nav = { source_id: 'SELF_POSITION', id: dropId, task_id: taskId2 }
@@ -1047,6 +1073,9 @@ export async function handleOneKeyCarry() {
     let pickExtra = null
     let dropExtra = null
     let previewRequests = []
+    if (nav6040 && oneKeyForm.value.pickRecognize === true) {
+      pickExtra = { recognize: true }
+    }
     if (nav6040) {
       if (pickH6040 != null) {
         previewRequests.push({ api: 6040, description: '取货前', body: { height: pickH6040 } })
@@ -1066,6 +1095,7 @@ export async function handleOneKeyCarry() {
     } else {
       pickExtra = { operation: 'ForkLoad' }
       mergeOneKeyForkNumeric(pickExtra, oneKeyForm.value, 'pick')
+      applyPickRecognizeToPathNavBody(pickExtra, oneKeyForm.value)
       dropExtra = { operation: req2Fork.operation, end_height: 0 }
       mergeOneKeyForkNumeric(dropExtra, oneKeyForm.value, 'drop')
       if (dropExtra.operation === 'ForkUnload' && dropExtra.end_height === undefined) dropExtra.end_height = 0
@@ -1970,6 +2000,7 @@ export function useRobokit() {
     applyPlanPathForkDefaultsToSegments,
     mergeForkNumericFromForm,
     mergeOneKeyForkNumeric,
+    applyPickRecognizeToPathNavBody,
     runPreDeliverySetForkHeight,
     sendMoveTaskListBy3051,
     sendTwoLegBy3051Self,
