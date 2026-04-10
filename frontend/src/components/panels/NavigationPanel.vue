@@ -52,6 +52,12 @@
                 <input type="checkbox" v-model="oneKeyForm.pickRecognize" />
                 取货段携带 recognize（路径导航 3051，与 ForkLoad/纯导航等配合见《API接口》路径导航说明）
               </label>
+              <div class="input-row-2">
+                <div class="form-field compact">
+                  <label>取货段 recfile（可选）</label>
+                  <input v-model="oneKeyForm.pickRecfile" placeholder="如 shelf/s0002.shelf" />
+                </div>
+              </div>
             </div>
             <template v-if="oneKeyForm.oneKeyScheme === 'fork_in_3051'">
               <h5 class="nav-subcard-title">取货段 ForkLoad</h5>

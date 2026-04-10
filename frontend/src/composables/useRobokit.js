@@ -66,6 +66,8 @@ export const oneKeyForm = ref({
   afterDrop6040Height: '',
   /** 取货段 3051 请求体是否携带 recognize:true（见 API 文档路径导航/货叉 ForkLoad 等说明） */
   pickRecognize: false,
+  /** 取货段 3051 可选 recfile（识别文件路径，如 shelf/s0002.shelf） */
+  pickRecfile: '',
   showPreview: false,
 })
 export const oneKeyPreviewJson = ref('')
@@ -543,10 +545,16 @@ export function mergeOneKeyForkNumeric(extra, form, part = 'pick') {
   }
 }
 
-/** 路径导航 3051 取货段：文档中可与 ForkLoad 等一并下发的 recognize（bool） */
+/** 路径导航 3051 取货段：附加 recognize/recfile 等识别参数（按文档可与 ForkLoad 等一起下发） */
 export function applyPickRecognizeToPathNavBody(body, form) {
-  if (!body || typeof body !== 'object' || !form || form.pickRecognize !== true) return
-  body.recognize = true
+  if (!body || typeof body !== 'object' || !form) return
+  if (form.pickRecognize === true) {
+    body.recognize = true
+  }
+  const recfile = String(form.pickRecfile || '').trim()
+  if (recfile) {
+    body.recfile = recfile
+  }
 }
 
 function oneKeyOptional6040Height(raw) {
