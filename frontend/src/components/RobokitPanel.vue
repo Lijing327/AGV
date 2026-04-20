@@ -1,10 +1,10 @@
 <template>
-  <div class="robokit-panel">
+  <div class="robokit-panel" :class="{ 'robokit-panel--offline': !connectionStatus.connected }">
     <!-- 连接状态头部 -->
     <div class="conn-header">
       <div class="conn-status-row">
         <span class="conn-dot" :class="{ online: connectionStatus.connected }"></span>
-        <span class="conn-text">{{ connectionStatus.connected ? '已连接' : '未连接' }}</span>
+        <span class="conn-text">{{ connectionStatus.connected ? '已连接' : '离线' }}</span>
         <span class="conn-host" v-if="connectionStatus.connected">{{ connectionStatus.host }}</span>
         <button
           class="conn-btn"
@@ -34,52 +34,52 @@
       </div>
     </div>
 
-    <!-- 已连接状态 -->
-    <template v-if="connectionStatus.connected">
-      <!-- 分组导航 -->
-      <div class="group-tabs">
-        <button
-          v-for="g in groups"
-          :key="g.id"
-          class="group-tab"
-          :class="{ active: activeGroup === g.id }"
-          @click="activeGroup = g.id"
-        >
-          <span class="tab-icon" v-html="g.icon"></span>
-          <span class="tab-label">{{ g.name }}</span>
-        </button>
-      </div>
+    <div v-if="!connectionStatus.connected" class="offline-banner" role="status">
+      离线模式：可进入各页查看与编辑参数；连接机器人后方可下发指令与轮询状态。
+    </div>
 
-      <!-- 主内容 + 底部日志（各 Tab 共用） -->
-      <div class="panel-main">
-        <div class="panel-content">
-          <OverviewPanel v-if="activeGroup === 'overview'" />
-          <ControlPanel v-if="activeGroup === 'control'" />
-          <MonitorPanel v-if="activeGroup === 'monitor'" />
-          <NavigationPanel v-if="activeGroup === 'navigation'" />
+    <!-- 主界面（未连接时亦可浏览，为离线配置） -->
+    <div class="group-tabs">
+      <button
+        v-for="g in groups"
+        :key="g.id"
+        class="group-tab"
+        :class="{ active: activeGroup === g.id }"
+        @click="activeGroup = g.id"
+      >
+        <span class="tab-icon" v-html="g.icon"></span>
+        <span class="tab-label">{{ g.name }}</span>
+      </button>
+    </div>
+
+    <div class="panel-main">
+      <div class="panel-content">
+        <OverviewPanel v-if="activeGroup === 'overview'" />
+        <ControlPanel v-if="activeGroup === 'control'" />
+        <MonitorPanel v-if="activeGroup === 'monitor'" />
+        <NavigationPanel v-if="activeGroup === 'navigation'" />
+      </div>
+      <div class="log-section">
+        <div class="log-head">
+          <h4>操作日志</h4>
+          <span class="log-count" v-if="logs.length">{{ logs.length }}</span>
         </div>
-        <div class="log-section">
-          <div class="log-head">
-            <h4>操作日志</h4>
-            <span class="log-count" v-if="logs.length">{{ logs.length }}</span>
-          </div>
-          <div class="log-list">
-            <template v-if="logs.length">
-              <div
-                v-for="(entry, i) in logs"
-                :key="i"
-                class="log-entry"
-                :class="{ error: entry.error, success: entry.success }"
-              >
-                <span class="log-time">[{{ entry.time }}]</span>
-                <span class="log-msg">{{ entry.message }}</span>
-              </div>
-            </template>
-            <div v-else class="empty-hint">暂无日志</div>
-          </div>
+        <div class="log-list">
+          <template v-if="logs.length">
+            <div
+              v-for="(entry, i) in logs"
+              :key="i"
+              class="log-entry"
+              :class="{ error: entry.error, success: entry.success }"
+            >
+              <span class="log-time">[{{ entry.time }}]</span>
+              <span class="log-msg">{{ entry.message }}</span>
+            </div>
+          </template>
+          <div v-else class="empty-hint">暂无日志</div>
         </div>
       </div>
-    </template>
+    </div>
   </div>
 </template>
 
@@ -266,6 +266,16 @@ const {
 .conn-form { margin-top: 12px; }
 .conn-inputs {
   display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 10px;
+}
+
+.offline-banner {
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--yellow);
+  background: rgba(245, 158, 11, 0.08);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+  flex-shrink: 0;
 }
 
 /* 分组Tab */

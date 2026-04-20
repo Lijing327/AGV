@@ -56,11 +56,29 @@ class RobokitClient:
         self._request_number = 0
         self._connections: dict[int, asyncio.StreamReader] = {}
         self._writers: dict[int, asyncio.StreamWriter] = {}
-        self._locks: dict[int, asyncio.Lock] = {}
+        # 所有 API 端口共用一把锁：同一 StreamReader 上禁止并发 read；
+        # 若按端口懒创建 asyncio.Lock，并发首次访问会各自 new 一把锁，互斥失效。
+        self._io_lock = asyncio.Lock()
         self._push_task: asyncio.Task | None = None
         self._push_reader: asyncio.StreamReader | None = None
         self._push_writer: asyncio.StreamWriter | None = None
         self._push_position_callback: Optional[Callable[..., Any]] = None
+
+    async def _connect_port(self, port: int) -> bool:
+        """在已持有 _io_lock 时建立指定端口 TCP 连接。"""
+        if port in self._connections:
+            return True
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(self.host, port),
+                timeout=self.timeout
+            )
+            self._connections[port] = reader
+            self._writers[port] = writer
+            return True
+        except Exception as e:
+            print(f"连接失败 {self.host}:{port} - {e}")
+            return False
 
     async def connect(self, port: int | None = None) -> bool:
         """
@@ -73,21 +91,8 @@ class RobokitClient:
             是否连接成功
         """
         port = port or self.default_port
-        if port in self._connections:
-            return True  # 已连接
-
-        try:
-            reader, writer = await asyncio.wait_for(
-                asyncio.open_connection(self.host, port),
-                timeout=self.timeout
-            )
-            self._connections[port] = reader
-            self._writers[port] = writer
-            self._locks[port] = asyncio.Lock()
-            return True
-        except Exception as e:
-            print(f"连接失败 {self.host}:{port} - {e}")
-            return False
+        async with self._io_lock:
+            return await self._connect_port(port)
 
     async def close(self, port: int | None = None) -> None:
         """
@@ -97,13 +102,13 @@ class RobokitClient:
             port: 端口号，None关闭所有连接
         """
         await self.stop_push_listener()
-        if port is None:
-            # 关闭所有连接
-            ports = list(self._writers.keys())
-            for p in ports:
-                await self._close_port(p)
-        else:
-            await self._close_port(port)
+        async with self._io_lock:
+            if port is None:
+                ports = list(self._writers.keys())
+                for p in ports:
+                    await self._close_port(p)
+            else:
+                await self._close_port(port)
 
     async def _close_port(self, port: int) -> None:
         """关闭指定端口的连接"""
@@ -116,7 +121,6 @@ class RobokitClient:
                 pass
             self._writers.pop(port, None)
             self._connections.pop(port, None)
-            self._locks.pop(port, None)
 
     def _next_number(self) -> int:
         """获取下一个请求序号"""
@@ -140,21 +144,9 @@ class RobokitClient:
             TimeoutError: 请求超时
             ValueError: 响应格式错误
         """
-        # 确保已连接
-        if port not in self._connections:
-            success = await self.connect(port)
-            if not success:
-                raise ConnectionError(f"无法连接到 {self.host}:{port}")
-
-        lock = self._locks.get(port)
-        if lock is None:
-            lock = asyncio.Lock()
-            self._locks[port] = lock
-
-        async with lock:
-            # 可能在等待 lock 的过程中，被其它协程关闭了该端口连接
+        async with self._io_lock:
             if port not in self._connections or port not in self._writers:
-                success = await self.connect(port)
+                success = await self._connect_port(port)
                 if not success or port not in self._connections or port not in self._writers:
                     raise ConnectionError(f"无法连接到 {self.host}:{port}")
             reader = self._connections[port]
@@ -217,6 +209,17 @@ class RobokitClient:
                 except Exception:
                     pass
                 raise ConnectionError(f"连接异常 (端口={port}, 类型={msg_type}): {e}")
+            except RuntimeError as e:
+                # 并发读同一 StreamReader 或 wait_for 取消后的残留状态
+                if "another coroutine is already waiting" in str(e):
+                    try:
+                        await self._close_port(port)
+                    except Exception:
+                        pass
+                    raise ConnectionError(
+                        f"连接读冲突，已断开并重连请重试 (端口={port}, 类型={msg_type})"
+                    ) from e
+                raise
             except Exception as e:
                 # 其它解析/协议错误
                 raise ValueError(f"解析响应失败: {e}")

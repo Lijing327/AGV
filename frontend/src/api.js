@@ -16,6 +16,10 @@ function sameOriginApiBase() {
 }
 
 function getApiBase() {
+  const forceSameOrigin = String(import.meta.env.VITE_USE_SAME_ORIGIN_API || '').toLowerCase()
+  if (forceSameOrigin === '1' || forceSameOrigin === 'true' || forceSameOrigin === 'yes') {
+    return sameOriginApiBase()
+  }
   const fromEnv = import.meta.env.VITE_API_BASE
   if (fromEnv !== undefined && String(fromEnv).trim() !== '') {
     return String(fromEnv).trim().replace(/\/+$/, '')
