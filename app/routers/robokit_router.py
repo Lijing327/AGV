@@ -2,9 +2,11 @@
 Robokit REST API 路由器
 提供HTTP接口供前端调用Robokit机器人API
 """
+import asyncio
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Body
+from pydantic import BaseModel, Field
 
 from app.deps import (
     get_robokit_client,
@@ -19,6 +21,53 @@ from app.services.robokit_api import (
 )
 
 router = APIRouter(prefix="/robokit", tags=["robokit"])
+
+
+class FangShangLoadRequest(BaseModel):
+    pickup_point: str = Field(..., min_length=1, description="取货点站点 id，例如 AP0")
+    nick_name: str = Field(default="operator", description="抢占控制权使用的昵称")
+    timeout_sec: int = Field(default=300, ge=5, le=1800)
+    poll_ms: int = Field(default=500, ge=200, le=5000)
+    target_height: float = Field(default=0.25, ge=0, description="取货段 ForkLoad end_height")
+    recognize: bool = Field(default=True, description="取货段是否带 recognize")
+    recfile: str = Field(default="plt/p2.plt", description="取货段 recfile")
+
+
+class FangShangUnloadRequest(BaseModel):
+    delivery_point: str = Field(..., min_length=1, description="送货点站点 id，例如 AP0")
+    nick_name: str = Field(default="operator", description="抢占控制权使用的昵称")
+    timeout_sec: int = Field(default=300, ge=5, le=1800)
+    poll_ms: int = Field(default=500, ge=200, le=5000)
+
+
+async def _wait_nav_task_completed(client, timeout_sec: int = 300, poll_ms: int = 500) -> dict:
+    timeout = max(5, int(timeout_sec))
+    interval_ms = max(200, int(poll_ms))
+    start = asyncio.get_event_loop().time()
+    while (asyncio.get_event_loop().time() - start) < timeout:
+        result = await client.call_status(1020, {"simple": True})
+        check_response(result)
+        payload = result.get("data") if isinstance(result.get("data"), dict) else result
+        status = payload.get("task_status")
+        if status is None:
+            await asyncio.sleep(interval_ms / 1000)
+            continue
+        status_num = int(status)
+        if status_num == 4:
+            return result
+        if status_num >= 5:
+            raise HTTPException(status_code=502, detail=f"导航任务异常结束，task_status={status_num}")
+        await asyncio.sleep(interval_ms / 1000)
+    raise HTTPException(status_code=504, detail=f"等待导航任务完成超时（{timeout}s）")
+
+
+async def _send_3051(client, body: dict, label: str) -> dict:
+    result = await client.call_navigation(3051, body)
+    try:
+        check_response(result)
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=f"{label} 下发失败: {e}")
+    return result
 
 # ==================== 连接管理 ====================
 
@@ -856,6 +905,191 @@ async def get_location_status():
         return result
     except RobokitError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/workflow/fangshang/load")
+async def fangshang_load(body: FangShangLoadRequest):
+    """
+    方上取货流程（对应 Java FangShangLoad / FangShangload 四段逻辑）：
+    1) 抢占控制权
+    2) SELF_POSITION -> pickup_point，ForkLoad（recognize/recfile，max_wspeed=0.2）
+    3) 等待 1020 task_status=4
+    4) SELF_POSITION -> LM2，ForkHeight(end_height=1.1，max_wspeed=0.2)
+    5) 等待 1020 task_status=4
+    6) SELF_POSITION -> AP1，ForkUnload(start=1.1,end=0.94)
+    7) 等待 1020 task_status=4
+    8) SELF_POSITION -> LM2，ForkHeight(start=0.94,end=0.09) 回到前置点待命
+    9) 等待 1020 task_status=4
+    """
+    client = get_robokit_client()
+    pickup_point = body.pickup_point.strip().upper()
+    if not pickup_point:
+        raise HTTPException(status_code=400, detail="pickup_point 不能为空")
+    try:
+        login = await client.call_config(4005, {"nick_name": body.nick_name})
+        check_response(login)
+
+        task_id_1 = f"TASK_{int(asyncio.get_event_loop().time() * 1000)}_L1"
+        req1 = {
+            "source_id": "SELF_POSITION",
+            "id": pickup_point,
+            "task_id": task_id_1,
+            "operation": "ForkLoad",
+            "end_height": float(body.target_height),
+            "max_speed": 0.15,
+            "max_wspeed": 0.2,
+            "recognize": bool(body.recognize),
+            "recfile": body.recfile,
+        }
+        r1 = await _send_3051(client, req1, "方上取货流程-首段")
+        w1 = await _wait_nav_task_completed(client, body.timeout_sec, body.poll_ms)
+
+        task_id_2 = f"TASK_{int(asyncio.get_event_loop().time() * 1000)}_L2"
+        req2 = {
+            "source_id": "SELF_POSITION",
+            "id": "LM2",
+            "task_id": task_id_2,
+            "operation": "ForkHeight",
+            "max_speed": 0.25,
+            "end_height": 1.1,
+            "max_wspeed": 0.2,
+        }
+        r2 = await _send_3051(client, req2, "方上取货流程-第二段")
+        w2 = await _wait_nav_task_completed(client, body.timeout_sec, body.poll_ms)
+
+        task_id_3 = f"TASK_{int(asyncio.get_event_loop().time() * 1000)}_L3"
+        req3 = {
+            "source_id": "SELF_POSITION",
+            "id": "AP1",
+            "task_id": task_id_3,
+            "operation": "ForkUnload",
+            "max_speed": 0.15,
+            "start_height": 1.1,
+            "end_height": 0.94,
+        }
+        r3 = await _send_3051(client, req3, "方上取货流程-第三段")
+        w3 = await _wait_nav_task_completed(client, body.timeout_sec, body.poll_ms)
+
+        task_id_4 = f"TASK_{int(asyncio.get_event_loop().time() * 1000)}_L4"
+        req4 = {
+            "source_id": "SELF_POSITION",
+            "id": "LM2",
+            "task_id": task_id_4,
+            "operation": "ForkHeight",
+            "max_speed": 0.25,
+            "start_height": 0.94,
+            "end_height": 0.09,
+        }
+        r4 = await _send_3051(client, req4, "方上取货流程-第四段")
+        w4 = await _wait_nav_task_completed(client, body.timeout_sec, body.poll_ms)
+        return {
+            "success": True,
+            "message": "方上取货流程完成（四段已执行）",
+            "tasks": [
+                {"task_id": task_id_1, "request": req1, "response": r1, "wait_status": w1},
+                {"task_id": task_id_2, "request": req2, "response": r2, "wait_status": w2},
+                {"task_id": task_id_3, "request": req3, "response": r3, "wait_status": w3},
+                {"task_id": task_id_4, "request": req4, "response": r4, "wait_status": w4},
+            ],
+        }
+    except HTTPException:
+        raise
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/workflow/fangshang/unload")
+async def fangshang_unload(body: FangShangUnloadRequest):
+    """
+    方上送货流程（与 Java AgvJavaServer.handleFangShangUnload、FangShangUnload.java 四段一致）：
+    1) 抢占控制权
+    2) SELF_POSITION -> LM2，ForkHeight(start=0.09,end=0.94，max_speed=0.4，max_wspeed=0.2)
+    3) 等待 1020 task_status=4
+    4) SELF_POSITION -> AP1，ForkLoad(start=0.94,end=1.1)
+    5) 等待 1020 task_status=4
+    6) SELF_POSITION -> LM2，ForkHeight(start=1.1,end=0.25)
+    7) 等待 1020 task_status=4
+    8) SELF_POSITION -> delivery_point，ForkUnload(start=0.25,end=0.09，max_wspeed=0.2)
+    （第四段下发后与 Java 一致，不在此接口内等待第四段完成。）
+    """
+    client = get_robokit_client()
+    delivery_point = body.delivery_point.strip().upper()
+    if not delivery_point:
+        raise HTTPException(status_code=400, detail="delivery_point 不能为空")
+    try:
+        login = await client.call_config(4005, {"nick_name": body.nick_name})
+        check_response(login)
+
+        task_id_1 = f"TASK_{int(asyncio.get_event_loop().time() * 1000)}_U1"
+        req1 = {
+            "source_id": "SELF_POSITION",
+            "id": "LM2",
+            "task_id": task_id_1,
+            "operation": "ForkHeight",
+            "start_height": 0.09,
+            "end_height": 0.94,
+            "max_speed": 0.4,
+            "max_wspeed": 0.2,
+        }
+        r1 = await _send_3051(client, req1, "方上送货流程-首段")
+        w1 = await _wait_nav_task_completed(client, body.timeout_sec, body.poll_ms)
+
+        task_id_2 = f"TASK_{int(asyncio.get_event_loop().time() * 1000)}_U2"
+        req2 = {
+            "source_id": "SELF_POSITION",
+            "id": "AP1",
+            "task_id": task_id_2,
+            "operation": "ForkLoad",
+            "max_speed": 0.15,
+            "start_height": 0.94,
+            "end_height": 1.1,
+        }
+        r2 = await _send_3051(client, req2, "方上送货流程-第二段")
+        w2 = await _wait_nav_task_completed(client, body.timeout_sec, body.poll_ms)
+
+        task_id_3 = f"TASK_{int(asyncio.get_event_loop().time() * 1000)}_U3"
+        req3 = {
+            "source_id": "SELF_POSITION",
+            "id": "LM2",
+            "task_id": task_id_3,
+            "operation": "ForkHeight",
+            "max_speed": 0.15,
+            "start_height": 1.1,
+            "end_height": 0.25,
+        }
+        r3 = await _send_3051(client, req3, "方上送货流程-第三段")
+        w3 = await _wait_nav_task_completed(client, body.timeout_sec, body.poll_ms)
+
+        task_id_4 = f"TASK_{int(asyncio.get_event_loop().time() * 1000)}_U4"
+        req4 = {
+            "source_id": "SELF_POSITION",
+            "id": delivery_point,
+            "task_id": task_id_4,
+            "operation": "ForkUnload",
+            "max_speed": 0.25,
+            "start_height": 0.25,
+            "end_height": 0.09,
+            "max_wspeed": 0.2,
+        }
+        r4 = await _send_3051(client, req4, "方上送货流程-第四段")
+        return {
+            "success": True,
+            "message": "方上送货流程下发完成（第四段已下发）",
+            "tasks": [
+                {"task_id": task_id_1, "request": req1, "response": r1, "wait_status": w1},
+                {"task_id": task_id_2, "request": req2, "response": r2, "wait_status": w2},
+                {"task_id": task_id_3, "request": req3, "response": r3, "wait_status": w3},
+                {"task_id": task_id_4, "request": req4, "response": r4},
+            ],
+        }
+    except HTTPException:
+        raise
+    except RobokitError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ==================== 机器人配置 API ====================
 
