@@ -31,6 +31,15 @@ function getApiBase() {
 }
 const API_BASE = getApiBase()
 
+function getJavaApiBase() {
+  const fromEnv = import.meta.env.VITE_JAVA_API_BASE
+  if (fromEnv !== undefined && String(fromEnv).trim() !== '') {
+    return String(fromEnv).trim().replace(/\/+$/, '')
+  }
+  return API_BASE
+}
+const JAVA_API_BASE = getJavaApiBase()
+
 export async function fetchMap() {
   const r = await fetch(`${API_BASE}/map`)
   return r.ok ? r.json() : null
@@ -524,6 +533,50 @@ export async function robokitGetNavStatus() {
 export async function robokitGetLocStatus() {
   const r = await fetch(`${API_BASE}/robokit/navigation/location-status`)
   return r.ok ? r.json() : null
+}
+
+export async function robokitFangShangLoadWorkflow(payload) {
+  const r = await fetch(`${API_BASE}/robokit/workflow/fangshang/load`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload || {}),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+export async function robokitFangShangUnloadWorkflow(payload) {
+  const r = await fetch(`${API_BASE}/robokit/workflow/fangshang/unload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload || {}),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+export async function robokitFangShangJavaLoadWorkflow(payload) {
+  const r = await fetch(`${JAVA_API_BASE}/robokit/workflow/fangshang/java/load`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload || {}),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
+}
+
+export async function robokitFangShangJavaUnloadWorkflow(payload) {
+  const r = await fetch(`${JAVA_API_BASE}/robokit/workflow/fangshang/java/unload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload || {}),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || `请求失败 ${r.status}`)
+  return data
 }
 
 // 机器人配置API

@@ -1,5 +1,28 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import * as api from '../api'
+import { FangShangLoadPayload, FangShangUnloadPayload } from '../models/fangshangWorkflowPayload'
+
+/** 车间模式：导航内仅一键搬运与方上流程；调试模式：概览/控制/监控与导航内全部子页 */
+const ROBOKIT_UI_STORAGE_KEY = 'agv.robokitUiMode'
+
+function readStoredRobokitUiMode() {
+  try {
+    if (typeof localStorage === 'undefined') return 'operator'
+    return localStorage.getItem(ROBOKIT_UI_STORAGE_KEY) === 'debug' ? 'debug' : 'operator'
+  } catch {
+    return 'operator'
+  }
+}
+
+export const robokitUiMode = ref(readStoredRobokitUiMode())
+
+watch(robokitUiMode, (v) => {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(ROBOKIT_UI_STORAGE_KEY, v)
+  } catch {
+    /* ignore */
+  }
+})
 
 export const groups = [
   { id: 'overview', name: '概览', icon: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>' },
@@ -14,7 +37,7 @@ export const loading = ref(false)
 export const pollTimer = ref(null)
 export const moveHeartbeatTimer = ref(null)
 
-export const connectForm = ref({ host: '172.16.11.211', port: 19204 })
+export const connectForm = ref({ host: '192.168.25.211', port: 19204 })
 
 export const robotInfo = ref({})
 export const locationInfo = ref({})
@@ -65,9 +88,11 @@ export const oneKeyForm = ref({
   /** 送货段 3051 完成后再发 6040（常用 0 降叉）；留空不执行 */
   afterDrop6040Height: '',
   /** 取货段 3051 请求体是否携带 recognize:true（见 API 文档路径导航/货叉 ForkLoad 等说明） */
-  pickRecognize: false,
+  pickRecognize: true,
   /** 取货段 3051 可选 recfile（识别文件路径，如 shelf/s0002.shelf） */
   pickRecfile: '',
+  /** 方上 Java 迁移流程参数 */
+  fangshangPoint: '',
   showPreview: false,
 })
 export const oneKeyPreviewJson = ref('')
@@ -1186,6 +1211,92 @@ export async function handleOneKeyCarry() {
   }
 }
 
+export async function handleFangShangLoadWorkflow() {
+  loading.value = true
+  try {
+    const pickupPoint = String(oneKeyForm.value.fangshangPoint || '').trim()
+    if (!pickupPoint) {
+      log('方上取货流程：请填写方上站点', true)
+      return
+    }
+    const payload = new FangShangLoadPayload(pickupPoint)
+    log('方上取货流程（Python）：调用后端编排接口…', false, true)
+    const result = await api.robokitFangShangLoadWorkflow(payload)
+    const tasksArr = result?.tasks
+    const lastTaskId =
+      Array.isArray(tasksArr) && tasksArr.length ? tasksArr[tasksArr.length - 1]?.task_id : '-'
+    log(`方上取货流程（Python）已完成（四段），末段 task_id=${lastTaskId}`, false, true)
+  } catch (e) {
+    log('方上取货流程（Python）失败: ' + (e.message || e), true)
+  } finally {
+    loading.value = false
+  }
+}
+
+export async function handleFangShangUnloadWorkflow() {
+  loading.value = true
+  try {
+    const deliveryPoint = String(oneKeyForm.value.fangshangPoint || '').trim()
+    if (!deliveryPoint) {
+      log('方上送货流程：请填写方上站点', true)
+      return
+    }
+    const payload = new FangShangUnloadPayload(deliveryPoint)
+    log('方上送货流程（Python）：调用后端编排接口…', false, true)
+    const result = await api.robokitFangShangUnloadWorkflow(payload)
+    const tasksArrPy = result?.tasks
+    const lastTaskIdPy =
+      Array.isArray(tasksArrPy) && tasksArrPy.length ? tasksArrPy[tasksArrPy.length - 1]?.task_id : '-'
+    log(`方上送货流程（Python）已下发完成（四段），末段 task_id=${lastTaskIdPy}`, false, true)
+  } catch (e) {
+    log('方上送货流程（Python）失败: ' + (e.message || e), true)
+  } finally {
+    loading.value = false
+  }
+}
+
+export async function handleFangShangJavaLoadWorkflow() {
+  loading.value = true
+  try {
+    const pickupPoint = String(oneKeyForm.value.fangshangPoint || '').trim()
+    if (!pickupPoint) {
+      log('方上取货流程（Java）：请填写方上站点', true)
+      return
+    }
+    const payload = new FangShangLoadPayload(pickupPoint)
+    log('方上取货流程（Java）：调用后端编排接口…', false, true)
+    const result = await api.robokitFangShangJavaLoadWorkflow(payload)
+    const tasksArrJ = result?.tasks
+    const lastTaskId =
+      Array.isArray(tasksArrJ) && tasksArrJ.length ? tasksArrJ[tasksArrJ.length - 1]?.task_id : '-'
+    log(`方上取货流程（Java）已完成（四段），末段 task_id=${lastTaskId}`, false, true)
+  } catch (e) {
+    log('方上取货流程（Java）失败: ' + (e.message || e), true)
+  } finally {
+    loading.value = false
+  }
+}
+
+export async function handleFangShangJavaUnloadWorkflow() {
+  loading.value = true
+  try {
+    const deliveryPoint = String(oneKeyForm.value.fangshangPoint || '').trim()
+    if (!deliveryPoint) {
+      log('方上送货流程（Java）：请填写方上站点', true)
+      return
+    }
+    const payload = new FangShangUnloadPayload(deliveryPoint)
+    log('方上送货流程（Java）：调用后端编排接口…', false, true)
+    const result = await api.robokitFangShangJavaUnloadWorkflow(payload)
+    const fourthTaskId = result?.tasks?.[3]?.task_id || '-'
+    log(`方上送货流程（Java）已下发完成，第四段 task_id=${fourthTaskId}`, false, true)
+  } catch (e) {
+    log('方上送货流程（Java）失败: ' + (e.message || e), true)
+  } finally {
+    loading.value = false
+  }
+}
+
 export function formatRobokitError(msg) {
   if (!msg || typeof msg !== 'string') return msg
   if (msg.includes('40009') || msg.includes('deprecated')) return msg + ' → 固件已弃用模式切换 API，抢占控制后可直接执行移动'
@@ -1947,6 +2058,7 @@ export function useRobokit() {
   return {
     api,
     groups,
+    robokitUiMode,
     activeGroup,
     connectionStatus,
     loading,
@@ -2021,6 +2133,10 @@ export function useRobokit() {
     handleOneKeyCarryPickOnly,
     handleOneKeyCarryDropOnly,
     handleOneKeyCarry,
+    handleFangShangLoadWorkflow,
+    handleFangShangUnloadWorkflow,
+    handleFangShangJavaLoadWorkflow,
+    handleFangShangJavaUnloadWorkflow,
     formatRobokitError,
     handleConnect,
     handleDisconnect,

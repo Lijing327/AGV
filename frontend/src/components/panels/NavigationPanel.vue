@@ -17,129 +17,180 @@
           
           <div class="card priority-card" v-show="navSubTab === 'carry'">
             <div class="card-head"><h4>一键搬运</h4></div>
-            <div class="form-field compact one-key-scheme-row">
-              <label>模式</label>
-              <select v-model="oneKeyForm.oneKeyScheme" class="fork-mode-select">
-                <option value="fork_in_3051">货叉随 3051（ForkLoad / 送货 operation）</option>
-                <option value="nav_6040">3051 纯导航 + 6040 设货叉高（无 operation）</option>
-              </select>
-            </div>
-            <p v-if="oneKeyForm.oneKeyScheme === 'nav_6040'" class="card-hint one-key-scheme-hint">
-              两段 3051 仅下发站点路径；货叉高度只用 6040。取货前/送货前可留空则跳过；「送货完成后」填高度（常用 0）则在第二段 3051 完成后再发 6040 降叉。
-            </p>
-            <div class="input-row-2">
-              <div class="form-field compact">
-                <label>取货点（站点）</label>
-                <input v-model="oneKeyForm.pickId" placeholder="如 PP1" />
+            <div class="sub-container">
+              <h5 class="nav-subcard-title section-title">一键搬运参数</h5>
+              <div class="form-field compact one-key-scheme-row">
+                <label>模式</label>
+                <select v-model="oneKeyForm.oneKeyScheme" class="fork-mode-select">
+                  <option value="fork_in_3051">货叉随 3051（ForkLoad / 送货 operation）</option>
+                  <option value="nav_6040">3051 纯导航 + 6040 设货叉高（无 operation）</option>
+                </select>
               </div>
-              <div class="form-field compact">
-                <label>放货点（站点）</label>
-                <input v-model="oneKeyForm.dropId" placeholder="如 LM55" />
-              </div>
-            </div>
-            <div class="input-row-2">
-              <div class="form-field compact">
-                <label>首段完成等待 · 超时 (秒)</label>
-                <input v-model.number="oneKeyForm.timeoutSec" type="number" min="5" step="1" />
-              </div>
-              <div class="form-field compact">
-                <label>轮询 (ms)</label>
-                <input v-model.number="oneKeyForm.pollMs" type="number" min="200" step="100" />
-              </div>
-            </div>
-            <div class="fork-nav-options one-key-pick-recognize">
-              <label class="fork-check">
-                <input type="checkbox" v-model="oneKeyForm.pickRecognize" />
-                取货段携带 recognize（路径导航 3051，与 ForkLoad/纯导航等配合见《API接口》路径导航说明）
-              </label>
+              <p v-if="oneKeyForm.oneKeyScheme === 'nav_6040'" class="card-hint one-key-scheme-hint">
+                两段 3051 仅下发站点路径；货叉高度只用 6040。取货前/送货前可留空则跳过；「送货完成后」填高度（常用 0）则在第二段 3051 完成后再发 6040 降叉。
+              </p>
               <div class="input-row-2">
                 <div class="form-field compact">
-                  <label>取货段 recfile（可选）</label>
-                  <input v-model="oneKeyForm.pickRecfile" placeholder="如 shelf/s0002.shelf" />
+                  <label>一键搬运取货点（站点）</label>
+                  <input v-model="oneKeyForm.pickId" placeholder="如 PP1" />
+                </div>
+                <div class="form-field compact">
+                  <label>一键搬运送货点（站点）</label>
+                  <input v-model="oneKeyForm.dropId" placeholder="如 LM55" />
+                </div>
+              </div>
+              <div class="input-row-2">
+                <div class="form-field compact">
+                  <label>首段完成等待 · 超时 (秒)</label>
+                  <input v-model.number="oneKeyForm.timeoutSec" type="number" min="5" step="1" />
+                </div>
+                <div class="form-field compact">
+                  <label>轮询 (ms)</label>
+                  <input v-model.number="oneKeyForm.pollMs" type="number" min="200" step="100" />
+                </div>
+              </div>
+              <div class="fork-nav-options one-key-pick-recognize">
+                <label class="fork-check">
+                  <input type="checkbox" v-model="oneKeyForm.pickRecognize" />
+                  取货段携带 recognize（路径导航 3051，与 ForkLoad/纯导航等配合见《API接口》路径导航说明）
+                </label>
+                <div class="input-row-2">
+                  <div class="form-field compact">
+                    <label>取货段 recfile（可选）</label>
+                    <input v-model="oneKeyForm.pickRecfile" placeholder="如 shelf/s0002.shelf" />
+                  </div>
+                </div>
+              </div>
+              <template v-if="oneKeyForm.oneKeyScheme === 'fork_in_3051'">
+                <h5 class="nav-subcard-title">取货段 ForkLoad</h5>
+                <div class="input-row-3 fork-height-row plan-fork-defaults">
+                  <div class="form-field compact">
+                    <label>start_height (m)</label>
+                    <input v-model.number="oneKeyForm.pick_start_height" type="number" step="0.01" placeholder="可选" />
+                  </div>
+                  <div class="form-field compact">
+                    <label>fork_mid_height (m)</label>
+                    <input v-model.number="oneKeyForm.pick_fork_mid_height" type="number" step="0.01" placeholder="可选" />
+                  </div>
+                  <div class="form-field compact">
+                    <label>end_height (m)</label>
+                    <input v-model.number="oneKeyForm.pick_end_height" type="number" step="0.01" placeholder="可选" />
+                  </div>
+                </div>
+                <h5 class="nav-subcard-title">送货段</h5>
+                <div class="input-row-3">
+                  <div class="form-field compact">
+                    <label>送货段 operation</label>
+                    <select v-model="oneKeyForm.drop_operation" class="fork-mode-select">
+                      <option value="ForkUnload">ForkUnload</option>
+                      <option value="ForkHeight">ForkHeight</option>
+                      <option value="ForkForward">ForkForward</option>
+                      <option value="Wait">Wait</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="input-row-3 fork-height-row plan-fork-defaults">
+                  <div class="form-field compact">
+                    <label>start_height (m)</label>
+                    <input v-model.number="oneKeyForm.drop_start_height" type="number" step="0.01" placeholder="可选" />
+                  </div>
+                  <div class="form-field compact">
+                    <label>fork_mid_height (m)</label>
+                    <input v-model.number="oneKeyForm.drop_fork_mid_height" type="number" step="0.01" placeholder="可选" />
+                  </div>
+                  <div class="form-field compact">
+                    <label>end_height (m)</label>
+                    <input v-model.number="oneKeyForm.drop_end_height" type="number" step="0.01" placeholder="默认 0" />
+                  </div>
+                </div>
+              </template>
+              <template v-else>
+                <h5 class="nav-subcard-title">货叉高度（6040，分段可选）</h5>
+                <div class="input-row-2 fork-height-row">
+                  <div class="form-field compact">
+                    <label>取货前 height (m)</label>
+                    <input v-model="oneKeyForm.pick6040Height" type="number" step="0.01" placeholder="可选" />
+                  </div>
+                  <div class="form-field compact">
+                    <label>送货前 height (m)</label>
+                    <input v-model="oneKeyForm.drop6040Height" type="number" step="0.01" placeholder="可选" />
+                  </div>
+                </div>
+              </template>
+              <div class="input-row-2 fork-height-row one-key-after-drop">
+                <div class="form-field compact">
+                  <label>送货完成后 height (m)</label>
+                  <input
+                    v-model="oneKeyForm.afterDrop6040Height"
+                    type="number"
+                    step="0.01"
+                    placeholder="常用 0 降叉，留空不执行"
+                  />
+                </div>
+              </div>
+              <div class="fork-nav-options">
+                <label class="fork-check">
+                  <input type="checkbox" v-model="oneKeyForm.showPreview" />
+                  显示 3051 预览
+                </label>
+                <textarea v-if="oneKeyForm.showPreview" class="json-textarea plan-preview-ta" readonly rows="12" :value="oneKeyPreviewJson" />
+              </div>
+              <div class="btn-row-2 one-key-split-btns">
+                <button type="button" class="btn btn-ghost-sm" @click="handleOneKeyCarryPickOnly" :disabled="loading">仅下发取货段</button>
+                <button type="button" class="btn btn-ghost-sm" @click="handleOneKeyCarryDropOnly" :disabled="loading">仅下发送货段</button>
+              </div>
+              <div class="btn-row-2">
+                <button type="button" class="btn btn-ghost-sm" @click="refreshOneKeyPreview" :disabled="loading">刷新预览</button>
+                <button type="button" class="btn btn-blue full" @click="handleOneKeyCarry" :disabled="loading">执行一键搬运（全程）</button>
+              </div>
+              <div class="nav-control-inline">
+                <h5 class="nav-subcard-title">导航控制</h5>
+                <div class="btn-row-2">
+                  <button class="btn btn-red" @click="handleStopNavigation" :disabled="loading">停止导航(3052)</button>
+                  <button class="btn btn-ghost-sm" @click="handlePauseNavigation" :disabled="loading">暂停(3001)</button>
+                  <button class="btn btn-ghost-sm" @click="handleResumeNavigation" :disabled="loading">继续(3002)</button>
+                  <button class="btn btn-ghost-sm" @click="handleCancelNavigation" :disabled="loading">取消(3003)</button>
                 </div>
               </div>
             </div>
-            <template v-if="oneKeyForm.oneKeyScheme === 'fork_in_3051'">
-              <h5 class="nav-subcard-title">取货段 ForkLoad</h5>
-              <div class="input-row-3 fork-height-row plan-fork-defaults">
+          </div>
+
+          <div class="card priority-card" v-show="navSubTab === 'fangshang'">
+            <div class="card-head"><h4>方上流程（Java）</h4></div>
+            <div class="sub-container">
+              <h5 class="nav-subcard-title section-title">接口参数</h5>
+              <div class="input-row-2">
                 <div class="form-field compact">
-                  <label>start_height (m)</label>
-                  <input v-model.number="oneKeyForm.pick_start_height" type="number" step="0.01" placeholder="可选" />
-                </div>
-                <div class="form-field compact">
-                  <label>fork_mid_height (m)</label>
-                  <input v-model.number="oneKeyForm.pick_fork_mid_height" type="number" step="0.01" placeholder="可选" />
-                </div>
-                <div class="form-field compact">
-                  <label>end_height (m)</label>
-                  <input v-model.number="oneKeyForm.pick_end_height" type="number" step="0.01" placeholder="可选" />
+                  <label>方上站点</label>
+                  <input v-model="oneKeyForm.fangshangPoint" placeholder="如 PP1 / LM55" />
                 </div>
               </div>
-              <h5 class="nav-subcard-title">送货段</h5>
-              <div class="input-row-3">
-                <div class="form-field compact">
-                  <label>送货段 operation</label>
-                  <select v-model="oneKeyForm.drop_operation" class="fork-mode-select">
-                    <option value="ForkUnload">ForkUnload</option>
-                    <option value="ForkHeight">ForkHeight</option>
-                    <option value="ForkForward">ForkForward</option>
-                    <option value="Wait">Wait</option>
-                  </select>
+              <div class="btn-row-2 one-key-split-btns">
+                <button type="button" class="btn btn-ghost-sm" @click="handleFangShangLoadWorkflow" :disabled="loading">执行方上取货流程（Python）</button>
+                <button type="button" class="btn btn-ghost-sm" @click="handleFangShangUnloadWorkflow" :disabled="loading">执行方上送货流程（Python）</button>
+              </div>
+              <div class="btn-row-2 one-key-split-btns">
+                <button type="button" class="btn btn-ghost-sm" @click="handleFangShangJavaLoadWorkflow" :disabled="loading">执行方上取货流程（Java）</button>
+                <button type="button" class="btn btn-ghost-sm" @click="handleFangShangJavaUnloadWorkflow" :disabled="loading">执行方上送货流程（Java）</button>
+              </div>
+              <div class="nav-control-inline">
+                <h5 class="nav-subcard-title">导航控制</h5>
+                <div class="btn-row-2">
+                  <button class="btn btn-red" @click="handleStopNavigation" :disabled="loading">停止导航(3052)</button>
+                  <button class="btn btn-ghost-sm" @click="handlePauseNavigation" :disabled="loading">暂停(3001)</button>
+                  <button class="btn btn-ghost-sm" @click="handleResumeNavigation" :disabled="loading">继续(3002)</button>
+                  <button class="btn btn-ghost-sm" @click="handleCancelNavigation" :disabled="loading">取消(3003)</button>
                 </div>
               </div>
-              <div class="input-row-3 fork-height-row plan-fork-defaults">
-                <div class="form-field compact">
-                  <label>start_height (m)</label>
-                  <input v-model.number="oneKeyForm.drop_start_height" type="number" step="0.01" placeholder="可选" />
-                </div>
-                <div class="form-field compact">
-                  <label>fork_mid_height (m)</label>
-                  <input v-model.number="oneKeyForm.drop_fork_mid_height" type="number" step="0.01" placeholder="可选" />
-                </div>
-                <div class="form-field compact">
-                  <label>end_height (m)</label>
-                  <input v-model.number="oneKeyForm.drop_end_height" type="number" step="0.01" placeholder="默认 0" />
-                </div>
-              </div>
-            </template>
-            <template v-else>
-              <h5 class="nav-subcard-title">货叉高度（6040，分段可选）</h5>
-              <div class="input-row-2 fork-height-row">
-                <div class="form-field compact">
-                  <label>取货前 height (m)</label>
-                  <input v-model="oneKeyForm.pick6040Height" type="number" step="0.01" placeholder="可选" />
-                </div>
-                <div class="form-field compact">
-                  <label>送货前 height (m)</label>
-                  <input v-model="oneKeyForm.drop6040Height" type="number" step="0.01" placeholder="可选" />
-                </div>
-              </div>
-            </template>
-            <div class="input-row-2 fork-height-row one-key-after-drop">
-              <div class="form-field compact">
-                <label>送货完成后 height (m)</label>
-                <input
-                  v-model="oneKeyForm.afterDrop6040Height"
-                  type="number"
-                  step="0.01"
-                  placeholder="常用 0 降叉，留空不执行"
-                />
-              </div>
-            </div>
-            <div class="fork-nav-options">
-              <label class="fork-check">
-                <input type="checkbox" v-model="oneKeyForm.showPreview" />
-                显示 3051 预览
-              </label>
-              <textarea v-if="oneKeyForm.showPreview" class="json-textarea plan-preview-ta" readonly rows="12" :value="oneKeyPreviewJson" />
-            </div>
-            <div class="btn-row-2 one-key-split-btns">
-              <button type="button" class="btn btn-ghost-sm" @click="handleOneKeyCarryPickOnly" :disabled="loading">仅下发取货段</button>
-              <button type="button" class="btn btn-ghost-sm" @click="handleOneKeyCarryDropOnly" :disabled="loading">仅下发送货段</button>
-            </div>
-            <div class="btn-row-2">
-              <button type="button" class="btn btn-ghost-sm" @click="refreshOneKeyPreview" :disabled="loading">刷新预览</button>
-              <button type="button" class="btn btn-blue full" @click="handleOneKeyCarry" :disabled="loading">执行一键搬运（全程）</button>
+              <p class="card-hint one-key-java-hint">
+                本区同时保留 Python 与 Java 两种方上流程；参数共用，按按钮区分调用方式。
+              </p>
+              <p class="card-hint one-key-java-hint">
+                前端仅提交方上站点：取货传 <code>pickup_point</code>，送货传 <code>delivery_point</code>。
+              </p>
+              <!-- <p class="card-hint one-key-java-hint">
+                其余参数（如 <code>nick_name</code>、<code>timeout_sec</code>、<code>poll_ms</code>、<code>recognize</code>、<code>recfile</code>）均使用后端默认值。
+              </p> -->
             </div>
           </div>
 
@@ -524,13 +575,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRobokit } from "../../composables/useRobokit.js"
 
 const navSubTab = ref('core')
-const navSubTabs = [
+const navSubTabsAll = [
   { id: 'core', label: '算路与下发' },
   { id: 'carry', label: '一键搬运' },
+  { id: 'fangshang', label: '方上流程' },
   { id: 'motion', label: '动作 / 清除' },
   { id: 'diag', label: '任务链 / 状态' },
 ]
@@ -538,6 +590,7 @@ const navSubTabs = [
 const {
   api,
   groups,
+  robokitUiMode,
   activeGroup,
   connectionStatus,
   loading,
@@ -607,6 +660,10 @@ const {
   handleOneKeyCarryPickOnly,
   handleOneKeyCarryDropOnly,
   handleOneKeyCarry,
+  handleFangShangLoadWorkflow,
+  handleFangShangUnloadWorkflow,
+  handleFangShangJavaLoadWorkflow,
+  handleFangShangJavaUnloadWorkflow,
   formatRobokitError,
   handleConnect,
   handleDisconnect,
@@ -667,6 +724,22 @@ const {
   stopPoll,
   stopMoveHeartbeat
 } = useRobokit()
+
+const navSubTabs = computed(() => {
+  if (robokitUiMode.value === 'debug') return navSubTabsAll
+  return navSubTabsAll.filter((t) => t.id === 'carry' || t.id === 'fangshang')
+})
+
+watch(
+  [robokitUiMode, navSubTabs],
+  () => {
+    const ids = navSubTabs.value.map((t) => t.id)
+    if (!ids.includes(navSubTab.value)) {
+      navSubTab.value = ids[0] ?? 'carry'
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>
@@ -736,5 +809,32 @@ const {
 }
 .one-key-scheme-hint {
   margin-top: 0 !important;
+}
+.one-key-split-btns {
+  flex-wrap: wrap;
+}
+.one-key-split-btns .btn-ghost-sm {
+  flex: 1 1 220px;
+}
+.one-key-java-hint {
+  margin-top: 0 !important;
+}
+.section-title {
+  margin-top: 0;
+}
+.sub-container {
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: rgba(255, 255, 255, 0.01);
+}
+.nav-control-inline {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border, rgba(255, 255, 255, 0.1));
+}
+.nav-control-inline .btn-row-2 {
+  flex-wrap: wrap;
 }
 </style>

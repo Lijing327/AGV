@@ -1,5 +1,11 @@
 <template>
-  <div class="robokit-panel" :class="{ 'robokit-panel--offline': !connectionStatus.connected }">
+  <div
+    class="robokit-panel"
+    :class="{
+      'robokit-panel--offline': !connectionStatus.connected,
+      'robokit-panel--operator': robokitUiMode === 'operator'
+    }"
+  >
     <!-- 连接状态头部 -->
     <div class="conn-header">
       <div class="conn-status-row">
@@ -15,13 +21,21 @@
         >
           {{ connectionStatus.connected ? '断开' : loading ? '连接中…' : '连接' }}
         </button>
+        <button
+          type="button"
+          class="ui-mode-btn"
+          :title="robokitUiMode === 'operator' ? '展开概览、控制、监控及全部导航子页' : '仅保留一键搬运与方上流程'"
+          @click="robokitUiMode = robokitUiMode === 'operator' ? 'debug' : 'operator'"
+        >
+          {{ robokitUiMode === 'operator' ? '调试模式' : '车间模式' }}
+        </button>
       </div>
       <!-- 连接表单 -->
       <div class="conn-form" v-if="!connectionStatus.connected">
         <div class="conn-inputs">
           <div class="form-field">
             <label>IP 地址</label>
-            <input v-model="connectForm.host" placeholder="172.16.11.211" />
+            <input v-model="connectForm.host" placeholder="192.168.25.211" />
           </div>
           <div class="form-field">
             <label>端口</label>
@@ -35,11 +49,16 @@
     </div>
 
     <div v-if="!connectionStatus.connected" class="offline-banner" role="status">
-      离线模式：可进入各页查看与编辑参数；连接机器人后方可下发指令与轮询状态。
+      <template v-if="robokitUiMode === 'operator'">
+        未连接机器人：无法下发指令。请先连接或联系调试人员。
+      </template>
+      <template v-else>
+        离线模式：可进入各页查看与编辑参数（含「一键搬运参数」与「方上 Java 迁移参数」两套）；连接机器人后方可下发指令与轮询状态。
+      </template>
     </div>
 
     <!-- 主界面（未连接时亦可浏览，为离线配置） -->
-    <div class="group-tabs">
+    <div class="group-tabs" v-if="robokitUiMode === 'debug'">
       <button
         v-for="g in groups"
         :key="g.id"
@@ -84,6 +103,7 @@
 </template>
 
 <script setup>
+import { watch } from "vue"
 import { useRobokit } from "../composables/useRobokit.js"
 import OverviewPanel from "./panels/OverviewPanel.vue"
 import ControlPanel from "./panels/ControlPanel.vue"
@@ -93,6 +113,7 @@ import NavigationPanel from "./panels/NavigationPanel.vue"
 const {
   api,
   groups,
+  robokitUiMode,
   activeGroup,
   connectionStatus,
   loading,
@@ -223,6 +244,10 @@ const {
   stopPoll,
   stopMoveHeartbeat
 } = useRobokit()
+
+watch(robokitUiMode, (mode) => {
+  if (mode === "operator") activeGroup.value = "navigation"
+})
 </script>
 
 <style>
@@ -263,6 +288,24 @@ const {
 }
 .conn-btn:hover { filter: brightness(1.1); }
 .conn-btn.disconnect { background: var(--red); }
+.ui-mode-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
+  flex-shrink: 0;
+}
+.ui-mode-btn:hover {
+  color: var(--text-secondary);
+  border-color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+}
 .conn-form { margin-top: 12px; }
 .conn-inputs {
   display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 10px;
@@ -693,6 +736,9 @@ const {
   max-height: 200px;
   overflow-y: auto;
   padding: 0 12px 10px;
+}
+.robokit-panel--operator .log-list {
+  max-height: 120px;
 }
 .log-entry {
   display: flex; gap: 8px; font-size: 11px; margin-bottom: 3px;
