@@ -579,6 +579,21 @@ export async function robokitFangShangJavaUnloadWorkflow(payload) {
   return data
 }
 
+export async function robokitJavaConnect(host, port = null) {
+  const payload = {
+    host: String(host || '').trim(),
+    port: port == null || port === '' ? undefined : Number(port),
+  }
+  const r = await fetch(`${JAVA_API_BASE}/robokit/connect`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(data.detail || data.err_msg || `请求失败 ${r.status}`)
+  return data
+}
+
 // 机器人配置API
 export async function robokitSetMode(mode) {
   const r = await fetch(`${API_BASE}/robokit/config/set-mode`, {

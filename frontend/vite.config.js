@@ -12,6 +12,8 @@ export default defineConfig(({ mode }) => {
     plugins: [vue()],
     server: {
       port: Number(env.VITE_DEV_PORT) || 3000,
+      // 占用时不静默改端口，避免换机后书签/文档里的地址对不上
+      strictPort: true,
       proxy: {
         '/api': {
           target: proxyTarget,

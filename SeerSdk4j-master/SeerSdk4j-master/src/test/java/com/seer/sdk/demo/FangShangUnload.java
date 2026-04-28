@@ -10,7 +10,7 @@ public class FangShangUnload {
 
     public static void main(String[] args) {
         // 0. 配置参数
-        String robotIp = "192.168.24.200";
+        String robotIp = "192.168.25.211";
 
         // 创建 Scanner 对象，用于读取 System.in (控制台输入)
         Scanner scanner = new Scanner(System.in);
@@ -19,15 +19,6 @@ public class FangShangUnload {
         System.out.print("请输入送货点 (例如 AP0): ");
         String target1Point = scanner.nextLine();
         target1Point = target1Point.toUpperCase();
-
-
-        // 提示用户输入货叉目标高度
-//        System.out.println("请输入货叉目标高度 (例如 1.0,默认为 0.25): ");
-        // 读取用户输入的字符串
-//        String inputStr = scanner.nextLine();
-        // 判断输入是否为空，如果为空则使用默认值 0.25，否则进行解析
-//        double targetHeight = inputStr.trim().isEmpty() ? 0.25 : Double.parseDouble(inputStr);
-
 
         RbkClient rbkClient = new RbkClient(robotIp);
 
@@ -60,7 +51,7 @@ public class FangShangUnload {
 
             // 货叉高度调整
             navReqJson1.put("operation", "ForkHeight");
-            navReqJson1.put("start_height", 0.09);
+//            navReqJson1.put("start_height", 0.09);
             navReqJson1.put("end_height", 0.94);
             navReqJson1.put("max_speed", 0.4);
             navReqJson1.put("max_wspeed", 0.2);

@@ -34,6 +34,7 @@ export const groups = [
 export const activeGroup = ref('navigation')
 export const connectionStatus = ref({ connected: false, host: '' })
 export const loading = ref(false)
+export const navControlLoading = ref(false)
 export const pollTimer = ref(null)
 export const moveHeartbeatTimer = ref(null)
 
@@ -1265,7 +1266,18 @@ export async function handleFangShangJavaLoadWorkflow() {
     }
     const payload = new FangShangLoadPayload(pickupPoint)
     log('方上取货流程（Java）：调用后端编排接口…', false, true)
-    const result = await api.robokitFangShangJavaLoadWorkflow(payload)
+    let result
+    try {
+      result = await api.robokitFangShangJavaLoadWorkflow(payload)
+    } catch (firstErr) {
+      const msg = String(firstErr?.message || firstErr || '')
+      if (!msg.includes('未连接机器人') && !msg.includes('/api/robokit/connect')) throw firstErr
+      const host = String(connectionStatus.value?.host || connectForm.value.host || '').trim()
+      if (!host) throw firstErr
+      log('检测到 Java 后端未连接，正在自动连接并重试…', false, false)
+      await api.robokitJavaConnect(host, connectForm.value.port)
+      result = await api.robokitFangShangJavaLoadWorkflow(payload)
+    }
     const tasksArrJ = result?.tasks
     const lastTaskId =
       Array.isArray(tasksArrJ) && tasksArrJ.length ? tasksArrJ[tasksArrJ.length - 1]?.task_id : '-'
@@ -1287,7 +1299,18 @@ export async function handleFangShangJavaUnloadWorkflow() {
     }
     const payload = new FangShangUnloadPayload(deliveryPoint)
     log('方上送货流程（Java）：调用后端编排接口…', false, true)
-    const result = await api.robokitFangShangJavaUnloadWorkflow(payload)
+    let result
+    try {
+      result = await api.robokitFangShangJavaUnloadWorkflow(payload)
+    } catch (firstErr) {
+      const msg = String(firstErr?.message || firstErr || '')
+      if (!msg.includes('未连接机器人') && !msg.includes('/api/robokit/connect')) throw firstErr
+      const host = String(connectionStatus.value?.host || connectForm.value.host || '').trim()
+      if (!host) throw firstErr
+      log('检测到 Java 后端未连接，正在自动连接并重试…', false, false)
+      await api.robokitJavaConnect(host, connectForm.value.port)
+      result = await api.robokitFangShangJavaUnloadWorkflow(payload)
+    }
     const fourthTaskId = result?.tasks?.[3]?.task_id || '-'
     log(`方上送货流程（Java）已下发完成，第四段 task_id=${fourthTaskId}`, false, true)
   } catch (e) {
@@ -1852,43 +1875,43 @@ export async function handleSpecifiedPathNavigation() {
 }
 
 export async function handleStopNavigation() {
-  loading.value = true
+  navControlLoading.value = true
   try {
     const result = await api.robokitStopNavigation()
     if (result?.ret_code === 0) log('导航已停止', false, true)
     else log('停止导航失败', true)
   } catch (e) { log('停止导航错误: ' + e.message, true) }
-  finally { loading.value = false }
+  finally { navControlLoading.value = false }
 }
 
 export async function handlePauseNavigation() {
-  loading.value = true
+  navControlLoading.value = true
   try {
     const result = await api.robokitPauseNavigation()
     if (result?.ret_code === 0) log('已暂停当前导航(3001)', false, true)
     else log('暂停失败', true)
   } catch (e) { log('暂停导航错误: ' + e.message, true) }
-  finally { loading.value = false }
+  finally { navControlLoading.value = false }
 }
 
 export async function handleResumeNavigation() {
-  loading.value = true
+  navControlLoading.value = true
   try {
     const result = await api.robokitResumeNavigation()
     if (result?.ret_code === 0) log('已继续当前导航(3002)', false, true)
     else log('继续失败', true)
   } catch (e) { log('继续导航错误: ' + e.message, true) }
-  finally { loading.value = false }
+  finally { navControlLoading.value = false }
 }
 
 export async function handleCancelNavigation() {
-  loading.value = true
+  navControlLoading.value = true
   try {
     const result = await api.robokitCancelNavigation()
     if (result?.ret_code === 0) log('已取消当前导航(3003)', false, true)
     else log('取消失败', true)
   } catch (e) { log('取消导航错误: ' + e.message, true) }
-  finally { loading.value = false }
+  finally { navControlLoading.value = false }
 }
 
 export async function handleTurn() {
@@ -2062,6 +2085,7 @@ export function useRobokit() {
     activeGroup,
     connectionStatus,
     loading,
+    navControlLoading,
     pollTimer,
     moveHeartbeatTimer,
     connectForm,

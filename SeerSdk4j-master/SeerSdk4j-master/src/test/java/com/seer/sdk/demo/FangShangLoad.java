@@ -6,11 +6,11 @@ import com.seer.sdk.rbk.RbkResultKind;
 import org.json.JSONObject;
 import java.util.Scanner;
 
-public class FangShangload {
+public class FangShangLoad {
 
     public static void main(String[] args) {
         // 0. 配置参数
-        String robotIp = "192.168.24.200";
+        String robotIp = "192.168.25.211";
 
         // 创建 Scanner 对象，用于读取 System.in (控制台输入)
         Scanner scanner = new Scanner(System.in);
@@ -20,12 +20,7 @@ public class FangShangload {
         String target1Point = scanner.nextLine();
         target1Point = target1Point.toUpperCase();
 
-        // 提示用户输入送货点
-//        System.out.print("请输入送货点 (例如 AP1): ");
-//        String target2Point = scanner.nextLine();
-//        target2Point = target2Point.toUpperCase();
-
-
+        // 取货段 ForkLoad end_height 与 FangShangload(1).java 一致（固定 0.25，与 Python/Java HTTP 默认一致）
         final double forkLoadEndHeight = 0.25;
 
         RbkClient rbkClient = new RbkClient(robotIp);
@@ -152,10 +147,16 @@ public class FangShangload {
             }
             System.out.println("导航指令(3)发送成功，任务 ID: " + currentTaskId3);
 
+            // ---------------------------------------------------------
+            // 10 等待第三段完成
+            // ---------------------------------------------------------
             System.out.println("等待叉车放货...");
             waitForTaskCompletion(rbkClient);
             System.out.println("叉车放货完成，准备执行下一步。");
 
+            // ---------------------------------------------------------
+            // 11. 第四次路径导航 (API 3051) -> 回到前置点待命（LM2）
+            // ---------------------------------------------------------
             JSONObject navReqJson4 = new JSONObject();
             navReqJson4.put("id", "LM2");
             navReqJson4.put("source_id", "SELF_POSITION");

@@ -146,10 +146,10 @@
               <div class="nav-control-inline">
                 <h5 class="nav-subcard-title">导航控制</h5>
                 <div class="btn-row-2">
-                  <button class="btn btn-red" @click="handleStopNavigation" :disabled="loading">停止导航(3052)</button>
-                  <button class="btn btn-ghost-sm" @click="handlePauseNavigation" :disabled="loading">暂停(3001)</button>
-                  <button class="btn btn-ghost-sm" @click="handleResumeNavigation" :disabled="loading">继续(3002)</button>
-                  <button class="btn btn-ghost-sm" @click="handleCancelNavigation" :disabled="loading">取消(3003)</button>
+                  <button class="btn btn-red" @click="handleStopNavigation" :disabled="navControlLoading">停止导航(3052)</button>
+                  <button class="btn btn-ghost-sm" @click="handlePauseNavigation" :disabled="navControlLoading">暂停(3001)</button>
+                  <button class="btn btn-ghost-sm" @click="handleResumeNavigation" :disabled="navControlLoading">继续(3002)</button>
+                  <button class="btn btn-ghost-sm" @click="handleCancelNavigation" :disabled="navControlLoading">取消(3003)</button>
                 </div>
               </div>
             </div>
@@ -176,10 +176,10 @@
               <div class="nav-control-inline">
                 <h5 class="nav-subcard-title">导航控制</h5>
                 <div class="btn-row-2">
-                  <button class="btn btn-red" @click="handleStopNavigation" :disabled="loading">停止导航(3052)</button>
-                  <button class="btn btn-ghost-sm" @click="handlePauseNavigation" :disabled="loading">暂停(3001)</button>
-                  <button class="btn btn-ghost-sm" @click="handleResumeNavigation" :disabled="loading">继续(3002)</button>
-                  <button class="btn btn-ghost-sm" @click="handleCancelNavigation" :disabled="loading">取消(3003)</button>
+                  <button class="btn btn-red" @click="handleStopNavigation" :disabled="navControlLoading">停止导航(3052)</button>
+                  <button class="btn btn-ghost-sm" @click="handlePauseNavigation" :disabled="navControlLoading">暂停(3001)</button>
+                  <button class="btn btn-ghost-sm" @click="handleResumeNavigation" :disabled="navControlLoading">继续(3002)</button>
+                  <button class="btn btn-ghost-sm" @click="handleCancelNavigation" :disabled="navControlLoading">取消(3003)</button>
                 </div>
               </div>
               <p class="card-hint one-key-java-hint">
@@ -429,10 +429,10 @@
           <div class="card nav-card-tight" v-show="navSubTab === 'core'">
             <div class="card-head"><h4>导航控制</h4></div>
             <div class="btn-row-2">
-              <button class="btn btn-red" @click="handleStopNavigation" :disabled="loading">停止导航(3052)</button>
-              <button class="btn btn-ghost-sm" @click="handlePauseNavigation" :disabled="loading">暂停(3001)</button>
-              <button class="btn btn-ghost-sm" @click="handleResumeNavigation" :disabled="loading">继续(3002)</button>
-              <button class="btn btn-ghost-sm" @click="handleCancelNavigation" :disabled="loading">取消(3003)</button>
+              <button class="btn btn-red" @click="handleStopNavigation" :disabled="navControlLoading">停止导航(3052)</button>
+              <button class="btn btn-ghost-sm" @click="handlePauseNavigation" :disabled="navControlLoading">暂停(3001)</button>
+              <button class="btn btn-ghost-sm" @click="handleResumeNavigation" :disabled="navControlLoading">继续(3002)</button>
+              <button class="btn btn-ghost-sm" @click="handleCancelNavigation" :disabled="navControlLoading">取消(3003)</button>
             </div>
           </div>
           <div class="card" v-show="navSubTab === 'motion'">
@@ -594,6 +594,7 @@ const {
   activeGroup,
   connectionStatus,
   loading,
+  navControlLoading,
   pollTimer,
   moveHeartbeatTimer,
   connectForm,
