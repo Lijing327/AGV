@@ -17,6 +17,8 @@ import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 
 public class AgvJavaServer {
@@ -165,6 +167,9 @@ public class AgvJavaServer {
         }
     }
 
+    // ----------------------------------------------------------------------
+    // 基础连接与通用接口
+    // ----------------------------------------------------------------------
     private static void handleConnect(HttpExchange exchange) throws IOException {
         JSONObject req = readJsonBody(exchange);
         String host = req.optString("host", "").trim();
@@ -245,260 +250,456 @@ public class AgvJavaServer {
         handleSimpleApi(exchange, 3066, payload);
     }
 
+    // ----------------------------------------------------------------------
+    // 方上取货流程（四段导航，带日志收集）
+    // ----------------------------------------------------------------------
     private static void handleFangShangLoadWorkflow(HttpExchange exchange) throws IOException {
-        if (!ensureConnected(exchange)) {
-            return;
-        }
-        JSONObject req = readJsonBody(exchange);
-        String pickupPoint = req.optString("pickup_point", "").trim().toUpperCase();
-        if (pickupPoint.isEmpty()) {
-            sendJson(exchange, 400, new JSONObject().put("detail", "pickup_point 不能为空"));
-            return;
-        }
-        String nickName = req.optString("nick_name", "operator").trim();
-        if (nickName.isEmpty()) {
-            nickName = "operator";
-        }
-        int timeoutSec = Math.max(5, req.optInt("timeout_sec", 300));
-        int pollMs = Math.max(200, req.optInt("poll_ms", 500));
-        double targetHeight = req.has("target_height") ? req.optDouble("target_height", 0.25) : 0.25;
-        boolean recognize = !req.has("recognize") || req.optBoolean("recognize", true);
-        String recfile = req.optString("recfile", "plt/p2.plt");
+        if (!ensureConnected(exchange)) return;
 
-        // 1) 抢占控制权
-        JSONObject takeBody = new JSONObject().put("nick_name", nickName);
-        RbkResult login = rbkClient.request(4005, takeBody.toString(), DEFAULT_TIMEOUT_MS);
-        if (!isOk(login)) {
-            sendRbkResult(exchange, login);
-            return;
-        }
+        List<String> logs = new ArrayList<>();
+        logs.add("========== 方上取货流程开始 ==========");
 
-        JSONArray tasks = new JSONArray();
-        String taskId1 = buildTaskId("L1");
-        JSONObject req1 = new JSONObject()
-                .put("source_id", "SELF_POSITION")
-                .put("id", pickupPoint)
-                .put("task_id", taskId1)
-                .put("operation", "ForkLoad")
-                .put("end_height", targetHeight)
-                .put("recognize", recognize)
-                .put("recfile", recfile)
-                .put("max_speed", 0.15)
-                .put("max_wspeed", 0.2);
-        RbkResult r1 = rbkClient.request(3051, req1.toString(), DEFAULT_TIMEOUT_MS);
-        if (!isOk(r1)) {
-            sendRbkResult(exchange, r1);
-            return;
-        }
-        JSONObject w1 = waitTaskCompleted(timeoutSec, pollMs);
-        if (!w1.optBoolean("ok")) {
-            sendJson(exchange, 504, new JSONObject().put("detail", w1.optString("detail", "等待首段完成超时")));
-            return;
-        }
-        tasks.put(new JSONObject().put("task_id", taskId1).put("request", req1).put("response", parseSafeObject(r1.getResStr())));
+        try {
+            JSONObject req = readJsonBody(exchange);
+            String pickupPoint = req.optString("pickup_point", "").trim().toUpperCase();
+            if (pickupPoint.isEmpty()) {
+                logs.add("[错误] 请求参数缺少 pickup_point");
+                sendJsonWithLogs(exchange, 400, false, "缺少取货点参数", logs);
+                return;
+            }
+            logs.add("[参数] 取货点: " + pickupPoint);
 
-        String taskId2 = buildTaskId("L2");
-        JSONObject req2 = new JSONObject()
-                .put("source_id", "SELF_POSITION")
-                .put("id", "LM2")
-                .put("task_id", taskId2)
-                .put("operation", "ForkHeight")
-                .put("max_speed", 0.25)
-                .put("end_height", 1.1)
-                .put("max_wspeed", 0.2);
-        RbkResult r2 = rbkClient.request(3051, req2.toString(), DEFAULT_TIMEOUT_MS);
-        if (!isOk(r2)) {
-            sendRbkResult(exchange, r2);
-            return;
-        }
-        JSONObject w2 = waitTaskCompleted(timeoutSec, pollMs);
-        if (!w2.optBoolean("ok")) {
-            sendJson(exchange, 504, new JSONObject().put("detail", w2.optString("detail", "等待第二段完成超时")));
-            return;
-        }
-        tasks.put(new JSONObject().put("task_id", taskId2).put("request", req2).put("response", parseSafeObject(r2.getResStr())));
+            String nickName = req.optString("nick_name", "operator").trim();
+            if (nickName.isEmpty()) nickName = "operator";
+            int timeoutSec = Math.max(5, req.optInt("timeout_sec", 300));
+            int pollMs = Math.max(200, req.optInt("poll_ms", 500));
+            double targetHeight = req.has("target_height") ? req.optDouble("target_height", 0.25) : 0.25;
+            boolean recognize = !req.has("recognize") || req.optBoolean("recognize", true);
+            String recfile = req.optString("recfile", "plt/p2.plt");
 
-        String taskId3 = buildTaskId("L3");
-        JSONObject req3 = new JSONObject()
-                .put("source_id", "SELF_POSITION")
-                .put("id", "AP1")
-                .put("task_id", taskId3)
-                .put("operation", "ForkUnload")
-                .put("max_speed", 0.15)
-                .put("start_height", 1.1)
-                .put("end_height", 0.94);
-        RbkResult r3 = rbkClient.request(3051, req3.toString(), DEFAULT_TIMEOUT_MS);
-        if (!isOk(r3)) {
-            sendRbkResult(exchange, r3);
-            return;
-        }
-        JSONObject w3 = waitTaskCompleted(timeoutSec, pollMs);
-        if (!w3.optBoolean("ok")) {
-            sendJson(exchange, 504, new JSONObject().put("detail", w3.optString("detail", "等待第三段完成超时")));
-            return;
-        }
-        tasks.put(new JSONObject().put("task_id", taskId3).put("request", req3).put("response", parseSafeObject(r3.getResStr())));
+            // 1. 验证站点
+            logs.add("[步骤1] 验证取货点站点ID...");
+            if (!validateStationId(rbkClient, pickupPoint, logs)) {
+                sendJsonWithLogs(exchange, 400, false, "站点验证失败：" + pickupPoint + " 不存在", logs);
+                return;
+            }
 
-        String taskId4 = buildTaskId("L4");
-        JSONObject req4 = new JSONObject()
-                .put("source_id", "SELF_POSITION")
-                .put("id", "LM2")
-                .put("task_id", taskId4)
-                .put("operation", "ForkHeight")
-                .put("max_speed", 0.25)
-                .put("start_height", 0.94)
-                .put("end_height", 0.09);
-        RbkResult r4 = rbkClient.request(3051, req4.toString(), DEFAULT_TIMEOUT_MS);
-        if (!isOk(r4)) {
-            sendRbkResult(exchange, r4);
-            return;
-        }
-        JSONObject w4 = waitTaskCompleted(timeoutSec, pollMs);
-        if (!w4.optBoolean("ok")) {
-            sendJson(exchange, 504, new JSONObject().put("detail", w4.optString("detail", "等待第四段完成超时")));
-            return;
-        }
-        tasks.put(new JSONObject().put("task_id", taskId4).put("request", req4).put("response", parseSafeObject(r4.getResStr())));
+            // 2. 抢占控制权
+            logs.add("[步骤2] 抢占控制权...");
+            JSONObject takeBody = new JSONObject().put("nick_name", nickName);
+            RbkResult login = rbkClient.request(4005, takeBody.toString(), DEFAULT_TIMEOUT_MS);
+            if (!isOk(login)) {
+                logs.add("[错误] 抢占控制权失败: " + (login.getErrMsg() == null ? "未知错误" : login.getErrMsg()));
+                sendJsonWithLogs(exchange, 502, false, "抢占控制权失败", logs);
+                return;
+            }
+            logs.add("[步骤2] 抢占控制权成功");
 
-        sendJson(exchange, 200, new JSONObject()
-                .put("success", true)
-                .put("message", "方上取货流程完成（四段已执行）")
-                .put("tasks", tasks));
+            JSONArray tasks = new JSONArray();
+
+            // 第一段：去取货点
+            logs.add("\n[步骤3] 执行第一段导航：去取货点 " + pickupPoint);
+            String taskId1 = buildTaskId("L1");
+            JSONObject req1 = new JSONObject()
+                    .put("source_id", "SELF_POSITION")
+                    .put("id", pickupPoint)
+                    .put("task_id", taskId1)
+                    .put("operation", "ForkLoad")
+                    .put("end_height", targetHeight)
+                    .put("recognize", recognize)
+                    .put("recfile", recfile)
+                    .put("max_speed", 0.15)
+                    .put("max_wspeed", 0.2);
+            logs.add("[请求] " + req1.toString());
+            RbkResult r1 = rbkClient.request(3051, req1.toString(), DEFAULT_TIMEOUT_MS);
+            if (!isOk(r1)) {
+                logs.add("[错误] 导航指令发送失败: " + (r1.getErrMsg() == null ? "" : r1.getErrMsg()));
+                sendJsonWithLogs(exchange, 502, false, "第一段导航下发失败", logs);
+                return;
+            }
+            logs.add("[成功] 导航指令已发送，任务ID: " + taskId1);
+            logs.add("[等待] 等待机器人到达取货点...");
+            boolean ok1 = waitForTaskCompletion(rbkClient, taskId1, timeoutSec, pollMs, logs);
+            if (!ok1) {
+                sendJsonWithLogs(exchange, 504, false, "第一段导航执行失败", logs);
+                return;
+            }
+            tasks.put(new JSONObject().put("task_id", taskId1).put("request", req1).put("response", parseSafeObject(r1.getResStr())));
+
+            // 第二段：去LM2
+            logs.add("\n[步骤4] 执行第二段导航：去立库前置点 LM2");
+            String taskId2 = buildTaskId("L2");
+            JSONObject req2 = new JSONObject()
+                    .put("source_id", "SELF_POSITION")
+                    .put("id", "LM2")
+                    .put("task_id", taskId2)
+                    .put("operation", "ForkHeight")
+                    .put("max_speed", 0.25)
+                    .put("end_height", 1.1)
+                    .put("max_wspeed", 0.2);
+            logs.add("[请求] " + req2.toString());
+            RbkResult r2 = rbkClient.request(3051, req2.toString(), DEFAULT_TIMEOUT_MS);
+            if (!isOk(r2)) {
+                logs.add("[错误] 导航指令发送失败: " + (r2.getErrMsg() == null ? "" : r2.getErrMsg()));
+                sendJsonWithLogs(exchange, 502, false, "第二段导航下发失败", logs);
+                return;
+            }
+            logs.add("[成功] 导航指令已发送，任务ID: " + taskId2);
+            logs.add("[等待] 等待机器人到达立库前置点...");
+            boolean ok2 = waitForTaskCompletion(rbkClient, taskId2, timeoutSec, pollMs, logs);
+            if (!ok2) {
+                sendJsonWithLogs(exchange, 504, false, "第二段导航执行失败", logs);
+                return;
+            }
+            tasks.put(new JSONObject().put("task_id", taskId2).put("request", req2).put("response", parseSafeObject(r2.getResStr())));
+
+            // 第三段：去AP1放货
+            logs.add("\n[步骤5] 执行第三段导航：去放货点 AP1");
+            String taskId3 = buildTaskId("L3");
+            JSONObject req3 = new JSONObject()
+                    .put("source_id", "SELF_POSITION")
+                    .put("id", "AP1")
+                    .put("task_id", taskId3)
+                    .put("operation", "ForkUnload")
+                    .put("max_speed", 0.15)
+                    .put("start_height", 1.1)
+                    .put("end_height", 0.94);
+            logs.add("[请求] " + req3.toString());
+            RbkResult r3 = rbkClient.request(3051, req3.toString(), DEFAULT_TIMEOUT_MS);
+            if (!isOk(r3)) {
+                logs.add("[错误] 导航指令发送失败: " + (r3.getErrMsg() == null ? "" : r3.getErrMsg()));
+                sendJsonWithLogs(exchange, 502, false, "第三段导航下发失败", logs);
+                return;
+            }
+            logs.add("[成功] 导航指令已发送，任务ID: " + taskId3);
+            logs.add("[等待] 等待叉车放货...");
+            boolean ok3 = waitForTaskCompletion(rbkClient, taskId3, timeoutSec, pollMs, logs);
+            if (!ok3) {
+                sendJsonWithLogs(exchange, 504, false, "第三段导航执行失败", logs);
+                return;
+            }
+            tasks.put(new JSONObject().put("task_id", taskId3).put("request", req3).put("response", parseSafeObject(r3.getResStr())));
+
+            // 第四段：回LM2
+            logs.add("\n[步骤6] 执行第四段导航：回到前置点 LM2");
+            String taskId4 = buildTaskId("L4");
+            JSONObject req4 = new JSONObject()
+                    .put("source_id", "SELF_POSITION")
+                    .put("id", "LM2")
+                    .put("task_id", taskId4)
+                    .put("operation", "ForkHeight")
+                    .put("max_speed", 0.25)
+                    .put("start_height", 0.94)
+                    .put("end_height", 0.09);
+            logs.add("[请求] " + req4.toString());
+            RbkResult r4 = rbkClient.request(3051, req4.toString(), DEFAULT_TIMEOUT_MS);
+            if (!isOk(r4)) {
+                logs.add("[错误] 导航指令发送失败: " + (r4.getErrMsg() == null ? "" : r4.getErrMsg()));
+                sendJsonWithLogs(exchange, 502, false, "第四段导航下发失败", logs);
+                return;
+            }
+            logs.add("[成功] 导航指令已发送，任务ID: " + taskId4);
+            logs.add("[等待] 等待机器人回到前置点...");
+            boolean ok4 = waitForTaskCompletion(rbkClient, taskId4, timeoutSec, pollMs, logs);
+            if (!ok4) {
+                sendJsonWithLogs(exchange, 504, false, "第四段导航执行失败", logs);
+                return;
+            }
+            tasks.put(new JSONObject().put("task_id", taskId4).put("request", req4).put("response", parseSafeObject(r4.getResStr())));
+
+            logs.add("\n========== 流程全部完成 ==========");
+            JSONObject response = new JSONObject()
+                    .put("success", true)
+                    .put("message", "方上取货流程执行成功")
+                    .put("tasks", tasks)
+                    .put("logs", new JSONArray(logs));
+            sendJson(exchange, 200, response);
+
+        } catch (Exception e) {
+            logs.add("[系统异常] " + e.getMessage());
+            e.printStackTrace();
+            sendJsonWithLogs(exchange, 500, false, "服务器内部错误", logs);
+        }
     }
 
+    // ----------------------------------------------------------------------
+    // 方上卸货流程（同样带日志）
+    // ----------------------------------------------------------------------
     private static void handleFangShangUnloadWorkflow(HttpExchange exchange) throws IOException {
-        if (!ensureConnected(exchange)) {
-            return;
-        }
-        JSONObject req = readJsonBody(exchange);
-        String deliveryPoint = req.optString("delivery_point", "").trim().toUpperCase();
-        if (deliveryPoint.isEmpty()) {
-            sendJson(exchange, 400, new JSONObject().put("detail", "delivery_point 不能为空"));
-            return;
-        }
-        String nickName = req.optString("nick_name", "operator").trim();
-        if (nickName.isEmpty()) {
-            nickName = "operator";
-        }
-        int timeoutSec = Math.max(5, req.optInt("timeout_sec", 300));
-        int pollMs = Math.max(200, req.optInt("poll_ms", 500));
+        if (!ensureConnected(exchange)) return;
 
-        JSONObject takeBody = new JSONObject().put("nick_name", nickName);
-        RbkResult login = rbkClient.request(4005, takeBody.toString(), DEFAULT_TIMEOUT_MS);
-        if (!isOk(login)) {
-            sendRbkResult(exchange, login);
-            return;
-        }
+        List<String> logs = new ArrayList<>();
+        logs.add("========== 方上卸货流程开始 ==========");
 
-        JSONArray tasks = new JSONArray();
+        try {
+            JSONObject req = readJsonBody(exchange);
+            String deliveryPoint = req.optString("delivery_point", "").trim().toUpperCase();
+            if (deliveryPoint.isEmpty()) {
+                logs.add("[错误] 请求参数缺少 delivery_point");
+                sendJsonWithLogs(exchange, 400, false, "缺少卸货点参数", logs);
+                return;
+            }
+            logs.add("[参数] 卸货点: " + deliveryPoint);
 
-        String taskId1 = buildTaskId("U1");
-        JSONObject req1 = new JSONObject()
-                .put("source_id", "SELF_POSITION")
-                .put("id", "LM2")
-                .put("task_id", taskId1)
-                .put("operation", "ForkHeight")
-                .put("start_height", 0.09)
-                .put("end_height", 0.94)
-                .put("max_speed", 0.4)
-                .put("max_wspeed", 0.2);
-        RbkResult r1 = rbkClient.request(3051, req1.toString(), DEFAULT_TIMEOUT_MS);
-        if (!isOk(r1)) {
-            sendRbkResult(exchange, r1);
-            return;
-        }
-        JSONObject w1 = waitTaskCompleted(timeoutSec, pollMs);
-        if (!w1.optBoolean("ok")) {
-            sendJson(exchange, 504, new JSONObject().put("detail", w1.optString("detail", "等待首段完成超时")));
-            return;
-        }
-        tasks.put(new JSONObject().put("task_id", taskId1).put("request", req1).put("response", parseSafeObject(r1.getResStr())));
+            String nickName = req.optString("nick_name", "operator").trim();
+            if (nickName.isEmpty()) nickName = "operator";
+            int timeoutSec = Math.max(5, req.optInt("timeout_sec", 300));
+            int pollMs = Math.max(200, req.optInt("poll_ms", 500));
 
-        String taskId2 = buildTaskId("U2");
-        JSONObject req2 = new JSONObject()
-                .put("source_id", "SELF_POSITION")
-                .put("id", "AP1")
-                .put("task_id", taskId2)
-                .put("operation", "ForkLoad")
-                .put("max_speed", 0.15)
-                .put("start_height", 0.94)
-                .put("end_height", 1.1);
-        RbkResult r2 = rbkClient.request(3051, req2.toString(), DEFAULT_TIMEOUT_MS);
-        if (!isOk(r2)) {
-            sendRbkResult(exchange, r2);
-            return;
-        }
-        JSONObject w2 = waitTaskCompleted(timeoutSec, pollMs);
-        if (!w2.optBoolean("ok")) {
-            sendJson(exchange, 504, new JSONObject().put("detail", w2.optString("detail", "等待第二段完成超时")));
-            return;
-        }
-        tasks.put(new JSONObject().put("task_id", taskId2).put("request", req2).put("response", parseSafeObject(r2.getResStr())));
+            // 抢占控制权
+            logs.add("[步骤1] 抢占控制权...");
+            JSONObject takeBody = new JSONObject().put("nick_name", nickName);
+            RbkResult login = rbkClient.request(4005, takeBody.toString(), DEFAULT_TIMEOUT_MS);
+            if (!isOk(login)) {
+                logs.add("[错误] 抢占控制权失败: " + (login.getErrMsg() == null ? "未知错误" : login.getErrMsg()));
+                sendJsonWithLogs(exchange, 502, false, "抢占控制权失败", logs);
+                return;
+            }
+            logs.add("[步骤1] 抢占控制权成功");
 
-        String taskId3 = buildTaskId("U3");
-        JSONObject req3 = new JSONObject()
-                .put("source_id", "SELF_POSITION")
-                .put("id", "LM2")
-                .put("task_id", taskId3)
-                .put("operation", "ForkHeight")
-                .put("max_speed", 0.15)
-                .put("start_height", 1.1)
-                .put("end_height", 0.25);
-        RbkResult r3 = rbkClient.request(3051, req3.toString(), DEFAULT_TIMEOUT_MS);
-        if (!isOk(r3)) {
-            sendRbkResult(exchange, r3);
-            return;
-        }
-        JSONObject w3 = waitTaskCompleted(timeoutSec, pollMs);
-        if (!w3.optBoolean("ok")) {
-            sendJson(exchange, 504, new JSONObject().put("detail", w3.optString("detail", "等待第三段完成超时")));
-            return;
-        }
-        tasks.put(new JSONObject().put("task_id", taskId3).put("request", req3).put("response", parseSafeObject(r3.getResStr())));
+            JSONArray tasks = new JSONArray();
 
-        String taskId4 = buildTaskId("U4");
-        JSONObject req4 = new JSONObject()
-                .put("source_id", "SELF_POSITION")
-                .put("id", deliveryPoint)
-                .put("task_id", taskId4)
-                .put("operation", "ForkUnload")
-                .put("max_speed", 0.25)
-                .put("start_height", 0.25)
-                .put("end_height", 0.09)
-                .put("max_wspeed", 0.2);
-        RbkResult r4 = rbkClient.request(3051, req4.toString(), DEFAULT_TIMEOUT_MS);
-        if (!isOk(r4)) {
-            sendRbkResult(exchange, r4);
-            return;
-        }
-        tasks.put(new JSONObject().put("task_id", taskId4).put("request", req4).put("response", parseSafeObject(r4.getResStr())));
+            // 第一段：LM2升叉
+            logs.add("\n[步骤2] 执行第一段导航：起始升叉 LM2");
+            String taskId1 = buildTaskId("U1");
+            JSONObject req1 = new JSONObject()
+                    .put("source_id", "SELF_POSITION")
+                    .put("id", "LM2")
+                    .put("task_id", taskId1)
+                    .put("operation", "ForkHeight")
+                    .put("start_height", 0.09)
+                    .put("end_height", 0.94)
+                    .put("max_speed", 0.4)
+                    .put("max_wspeed", 0.2);
+            logs.add("[请求] " + req1.toString());
+            RbkResult r1 = rbkClient.request(3051, req1.toString(), DEFAULT_TIMEOUT_MS);
+            if (!isOk(r1)) {
+                logs.add("[错误] 导航指令发送失败: " + (r1.getErrMsg() == null ? "" : r1.getErrMsg()));
+                sendJsonWithLogs(exchange, 502, false, "第一段导航下发失败", logs);
+                return;
+            }
+            logs.add("[成功] 导航指令已发送，任务ID: " + taskId1);
+            logs.add("[等待] 等待叉臂升至0.94...");
+            boolean ok1 = waitForTaskCompletion(rbkClient, taskId1, timeoutSec, pollMs, logs);
+            if (!ok1) {
+                sendJsonWithLogs(exchange, 504, false, "第一段导航执行失败", logs);
+                return;
+            }
+            tasks.put(new JSONObject().put("task_id", taskId1).put("request", req1).put("response", parseSafeObject(r1.getResStr())));
 
-        sendJson(exchange, 200, new JSONObject()
-                .put("success", true)
-                .put("message", "方上送货流程下发完成（第四段已下发）")
-                .put("tasks", tasks));
+            // 第二段：去AP1取货
+            logs.add("\n[步骤3] 执行第二段导航：去AP1取货");
+            String taskId2 = buildTaskId("U2");
+            JSONObject req2 = new JSONObject()
+                    .put("source_id", "SELF_POSITION")
+                    .put("id", "AP1")
+                    .put("task_id", taskId2)
+                    .put("operation", "ForkLoad")
+                    .put("max_speed", 0.15)
+                    .put("start_height", 0.94)
+                    .put("end_height", 1.1);
+            logs.add("[请求] " + req2.toString());
+            RbkResult r2 = rbkClient.request(3051, req2.toString(), DEFAULT_TIMEOUT_MS);
+            if (!isOk(r2)) {
+                logs.add("[错误] 导航指令发送失败: " + (r2.getErrMsg() == null ? "" : r2.getErrMsg()));
+                sendJsonWithLogs(exchange, 502, false, "第二段导航下发失败", logs);
+                return;
+            }
+            logs.add("[成功] 导航指令已发送，任务ID: " + taskId2);
+            logs.add("[等待] 等待取货完成...");
+            boolean ok2 = waitForTaskCompletion(rbkClient, taskId2, timeoutSec, pollMs, logs);
+            if (!ok2) {
+                sendJsonWithLogs(exchange, 504, false, "第二段导航执行失败", logs);
+                return;
+            }
+            tasks.put(new JSONObject().put("task_id", taskId2).put("request", req2).put("response", parseSafeObject(r2.getResStr())));
+
+            // 第三段：回LM2降叉
+            logs.add("\n[步骤4] 执行第三段导航：回LM2降叉");
+            String taskId3 = buildTaskId("U3");
+            JSONObject req3 = new JSONObject()
+                    .put("source_id", "SELF_POSITION")
+                    .put("id", "LM2")
+                    .put("task_id", taskId3)
+                    .put("operation", "ForkHeight")
+                    .put("max_speed", 0.15)
+                    .put("start_height", 1.1)
+                    .put("end_height", 0.25);
+            logs.add("[请求] " + req3.toString());
+            RbkResult r3 = rbkClient.request(3051, req3.toString(), DEFAULT_TIMEOUT_MS);
+            if (!isOk(r3)) {
+                logs.add("[错误] 导航指令发送失败: " + (r3.getErrMsg() == null ? "" : r3.getErrMsg()));
+                sendJsonWithLogs(exchange, 502, false, "第三段导航下发失败", logs);
+                return;
+            }
+            logs.add("[成功] 导航指令已发送，任务ID: " + taskId3);
+            logs.add("[等待] 等待叉臂降至0.25...");
+            boolean ok3 = waitForTaskCompletion(rbkClient, taskId3, timeoutSec, pollMs, logs);
+            if (!ok3) {
+                sendJsonWithLogs(exchange, 504, false, "第三段导航执行失败", logs);
+                return;
+            }
+            tasks.put(new JSONObject().put("task_id", taskId3).put("request", req3).put("response", parseSafeObject(r3.getResStr())));
+
+            // 第四段：去卸货点卸货
+            logs.add("\n[步骤5] 执行第四段导航：去卸货点 " + deliveryPoint);
+            String taskId4 = buildTaskId("U4");
+            JSONObject req4 = new JSONObject()
+                    .put("source_id", "SELF_POSITION")
+                    .put("id", deliveryPoint)
+                    .put("task_id", taskId4)
+                    .put("operation", "ForkUnload")
+                    .put("max_speed", 0.25)
+                    .put("start_height", 0.25)
+                    .put("end_height", 0.09)
+                    .put("max_wspeed", 0.2);
+            logs.add("[请求] " + req4.toString());
+            RbkResult r4 = rbkClient.request(3051, req4.toString(), DEFAULT_TIMEOUT_MS);
+            if (!isOk(r4)) {
+                logs.add("[错误] 导航指令发送失败: " + (r4.getErrMsg() == null ? "" : r4.getErrMsg()));
+                sendJsonWithLogs(exchange, 502, false, "第四段导航下发失败", logs);
+                return;
+            }
+            logs.add("[成功] 导航指令已发送，任务ID: " + taskId4);
+            logs.add("[等待] 等待卸货完成...");
+            boolean ok4 = waitForTaskCompletion(rbkClient, taskId4, timeoutSec, pollMs, logs);
+            if (!ok4) {
+                sendJsonWithLogs(exchange, 504, false, "第四段导航执行失败", logs);
+                return;
+            }
+            tasks.put(new JSONObject().put("task_id", taskId4).put("request", req4).put("response", parseSafeObject(r4.getResStr())));
+
+            logs.add("\n========== 卸货流程全部完成 ==========");
+            JSONObject response = new JSONObject()
+                    .put("success", true)
+                    .put("message", "方上卸货流程执行成功")
+                    .put("tasks", tasks)
+                    .put("logs", new JSONArray(logs));
+            sendJson(exchange, 200, response);
+
+        } catch (Exception e) {
+            logs.add("[系统异常] " + e.getMessage());
+            e.printStackTrace();
+            sendJsonWithLogs(exchange, 500, false, "服务器内部错误", logs);
+        }
     }
 
-    private static JSONObject waitTaskCompleted(int timeoutSec, int pollMs) {
-        long deadlineMs = System.currentTimeMillis() + timeoutSec * 1000L;
-        while (System.currentTimeMillis() < deadlineMs) {
-            JSONObject query = new JSONObject().put("simple", true);
-            RbkResult statusResult = rbkClient.request(1020, query.toString(), 2000);
-            if (statusResult.getKind() != RbkResultKind.Ok) {
-                sleepQuietly(Math.max(200, pollMs));
-                continue;
+    // ----------------------------------------------------------------------
+    // 辅助方法：站点验证、任务等待、取消任务、日志响应等
+    // ----------------------------------------------------------------------
+    private static boolean validateStationId(RbkClient client, String stationId, List<String> logs) {
+        logs.add("[验证] 正在查询地图站点列表...");
+        try {
+            JSONObject queryReq = new JSONObject();
+            RbkResult result = client.request(1301, queryReq.toString(), 5000);
+            if (RbkResultKind.Ok.equals(result.getKind())) {
+                String rawResponse = result.getResStr();
+                JSONObject resJson = new JSONObject(rawResponse);
+                if (resJson.has("ret_code") && resJson.getInt("ret_code") == 0) {
+                    if (resJson.has("stations")) {
+                        JSONArray stations = resJson.getJSONArray("stations");
+                        for (int i = 0; i < stations.length(); i++) {
+                            JSONObject station = stations.getJSONObject(i);
+                            if (station.has("id") && stationId.equals(station.getString("id"))) {
+                                logs.add("[验证] 站点 " + stationId + " 存在，验证通过。");
+                                return true;
+                            }
+                        }
+                        logs.add("[验证] 错误：地图中未找到站点 " + stationId);
+                        return false;
+                    } else {
+                        logs.add("[验证] 错误：响应中无 stations 字段");
+                        return false;
+                    }
+                } else {
+                    logs.add("[验证] 错误：查询站点接口返回码异常");
+                    return false;
+                }
+            } else {
+                logs.add("[验证] 错误：请求站点列表失败 - " + result.getErrMsg());
+                return false;
             }
-            JSONObject payload = parseSafeObject(statusResult.getResStr());
-            int status = payload.has("task_status") ? payload.optInt("task_status", -1) : -1;
-            if (status == NAV_COMPLETED_STATUS) {
-                return new JSONObject().put("ok", true).put("status", status);
-            }
-            if (status >= 5) {
-                return new JSONObject().put("ok", false).put("detail", "导航任务异常结束，task_status=" + status);
-            }
-            sleepQuietly(Math.max(200, pollMs));
+        } catch (Exception e) {
+            logs.add("[验证] 异常：" + e.getMessage());
+            return false;
         }
-        return new JSONObject().put("ok", false).put("detail", "等待导航任务完成超时（" + timeoutSec + "s）");
+    }
+
+    private static boolean waitForTaskCompletion(RbkClient client, String taskId, long timeoutSec, int pollMs, List<String> logs) throws InterruptedException {
+        long startTime = System.currentTimeMillis();
+        long timeoutMillis = timeoutSec * 1000L;
+        int consecutiveTimeouts = 0;
+        final int MAX_CONSECUTIVE_TIMEOUTS = 5;
+
+        while (true) {
+            if (System.currentTimeMillis() - startTime > timeoutMillis) {
+                logs.add("[等待] 错误：任务 " + taskId + " 执行超时 (" + timeoutSec + "s)");
+                cancelTask(client, taskId, logs);
+                return false;
+            }
+            try {
+                JSONObject queryReq = new JSONObject();
+                queryReq.put("simple", true);
+                queryReq.put("task_id", taskId);
+                RbkResult result = client.request(1020, queryReq.toString(), 3000);
+                if (RbkResultKind.Ok.equals(result.getKind())) {
+                    consecutiveTimeouts = 0;
+                    String rawResponse = result.getResStr();
+                    JSONObject resJson = new JSONObject(rawResponse);
+                    if (resJson.has("task_status")) {
+                        int status = resJson.getInt("task_status");
+                        if (status == NAV_COMPLETED_STATUS) {
+                            logs.add("[等待] 任务 " + taskId + " 已完成 (status=4)");
+                            return true;
+                        } else if (status >= 5) {
+                            logs.add("[等待] 错误：任务 " + taskId + " 异常结束，状态码 " + status);
+                            cancelTask(client, taskId, logs);
+                            return false;
+                        } else {
+                            Thread.sleep(pollMs);
+                        }
+                    } else {
+                        logs.add("[等待] 警告：响应无 task_status 字段，继续等待...");
+                        Thread.sleep(pollMs);
+                    }
+                } else {
+                    logs.add("[等待] 警告：查询状态失败 - " + result.getErrMsg());
+                    Thread.sleep(pollMs);
+                }
+            } catch (Exception e) {
+                consecutiveTimeouts++;
+                logs.add("[等待] 异常 (" + consecutiveTimeouts + "/" + MAX_CONSECUTIVE_TIMEOUTS + "): " + e.getMessage());
+                if (consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS) {
+                    logs.add("[等待] 错误：连续失败次数过多，任务 " + taskId + " 视为失败");
+                    cancelTask(client, taskId, logs);
+                    return false;
+                }
+                Thread.sleep(2000);
+            }
+        }
+    }
+
+    private static void cancelTask(RbkClient client, String taskId, List<String> logs) {
+        try {
+            JSONObject cancelReq = new JSONObject();
+            cancelReq.put("task_id", taskId);
+            RbkResult result = client.request(3052, cancelReq.toString(), 5000);
+            if (RbkResultKind.Ok.equals(result.getKind())) {
+                logs.add("[取消] 已发送取消任务请求: " + taskId);
+            } else {
+                logs.add("[取消] 取消任务失败: " + result.getErrMsg());
+            }
+        } catch (Exception e) {
+            logs.add("[取消] 异常: " + e.getMessage());
+        }
+    }
+
+    private static void sendJsonWithLogs(HttpExchange exchange, int statusCode, boolean success, String message, List<String> logs) throws IOException {
+        JSONObject response = new JSONObject()
+                .put("success", success)
+                .put("message", message)
+                .put("logs", new JSONArray(logs));
+        sendJson(exchange, statusCode, response);
     }
 
     private static String buildTaskId(String suffix) {
@@ -510,9 +711,7 @@ public class AgvJavaServer {
     }
 
     private static JSONObject parseSafeObject(String raw) {
-        if (raw == null || raw.trim().isEmpty()) {
-            return new JSONObject();
-        }
+        if (raw == null || raw.trim().isEmpty()) return new JSONObject();
         try {
             return new JSONObject(raw);
         } catch (JSONException e) {
@@ -530,9 +729,7 @@ public class AgvJavaServer {
 
     private static JSONObject parseQuerySimple(String query) {
         JSONObject params = new JSONObject();
-        if (query == null || query.isEmpty()) {
-            return params;
-        }
+        if (query == null || query.isEmpty()) return params;
         String[] pairs = query.split("&");
         for (String pair : pairs) {
             String[] kv = pair.split("=", 2);
@@ -582,9 +779,7 @@ public class AgvJavaServer {
 
     private static JSONObject readJsonBody(HttpExchange exchange) throws IOException {
         String body = readBodyText(exchange);
-        if (body == null || body.trim().isEmpty()) {
-            return new JSONObject();
-        }
+        if (body == null || body.trim().isEmpty()) return new JSONObject();
         return new JSONObject(body);
     }
 

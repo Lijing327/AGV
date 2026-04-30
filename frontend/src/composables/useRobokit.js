@@ -36,6 +36,7 @@ export const connectionStatus = ref({ connected: false, host: '' })
 export const loading = ref(false)
 export const navControlLoading = ref(false)
 export const pollTimer = ref(null)
+export const pollInFlight = ref(false)
 export const moveHeartbeatTimer = ref(null)
 
 export const connectForm = ref({ host: '192.168.25.211', port: 19204 })
@@ -157,7 +158,24 @@ export const slamStatusText = computed(() => {
 
 export function log(message, isError = false, isSuccess = false) {
   logs.value.unshift({ time: new Date().toLocaleTimeString(), message, error: isError, success: isSuccess })
-  if (logs.value.length > 50) logs.value.pop()
+  if (logs.value.length > 100) logs.value.pop()
+}
+
+/** Java 方上流程 HTTP 响应中的 logs 数组写入操作日志（顺序与后端一致，整块在现有条目之上） */
+function prependJavaFangshangWorkflowLogs(lines) {
+  const arr = (Array.isArray(lines) ? lines : []).map((l) => String(l ?? '')).filter((s) => s.length)
+  if (!arr.length) return
+  const time = new Date().toLocaleTimeString()
+  const block = arr.map((message) => {
+    const error =
+      /\[错误\]|\[系统异常\]|错误：/.test(message) ||
+      /\[验证\] 错误|\[等待\] 错误/.test(message)
+    const success =
+      !error &&
+      /\[成功\]|验证通过|流程全部完成|卸货流程全部完成|执行成功/.test(message)
+    return { time, message, error, success }
+  })
+  logs.value = [...block, ...logs.value].slice(0, 100)
 }
 
 export function sleep(ms) {
@@ -1278,11 +1296,13 @@ export async function handleFangShangJavaLoadWorkflow() {
       await api.robokitJavaConnect(host, connectForm.value.port)
       result = await api.robokitFangShangJavaLoadWorkflow(payload)
     }
+    if (Array.isArray(result?.logs) && result.logs.length) prependJavaFangshangWorkflowLogs(result.logs)
     const tasksArrJ = result?.tasks
     const lastTaskId =
       Array.isArray(tasksArrJ) && tasksArrJ.length ? tasksArrJ[tasksArrJ.length - 1]?.task_id : '-'
     log(`方上取货流程（Java）已完成（四段），末段 task_id=${lastTaskId}`, false, true)
   } catch (e) {
+    if (Array.isArray(e.logs) && e.logs.length) prependJavaFangshangWorkflowLogs(e.logs)
     log('方上取货流程（Java）失败: ' + (e.message || e), true)
   } finally {
     loading.value = false
@@ -1311,9 +1331,11 @@ export async function handleFangShangJavaUnloadWorkflow() {
       await api.robokitJavaConnect(host, connectForm.value.port)
       result = await api.robokitFangShangJavaUnloadWorkflow(payload)
     }
+    if (Array.isArray(result?.logs) && result.logs.length) prependJavaFangshangWorkflowLogs(result.logs)
     const fourthTaskId = result?.tasks?.[3]?.task_id || '-'
     log(`方上送货流程（Java）已下发完成，第四段 task_id=${fourthTaskId}`, false, true)
   } catch (e) {
+    if (Array.isArray(e.logs) && e.logs.length) prependJavaFangshangWorkflowLogs(e.logs)
     log('方上送货流程（Java）失败: ' + (e.message || e), true)
   } finally {
     loading.value = false
@@ -2052,13 +2074,19 @@ export function startPoll() {
   if (pollTimer.value) return
   pollTimer.value = setInterval(() => {
     if (connectionStatus.value.connected) {
-      loadLocation(); loadSpeed(); loadEmergency()
+      if (pollInFlight.value) return
+      pollInFlight.value = true
+      Promise.allSettled([loadLocation(), loadSpeed(), loadEmergency()])
+        .finally(() => {
+          pollInFlight.value = false
+        })
     }
-  }, 1000)
+  }, 2000)
 }
 
 export function stopPoll() {
   if (pollTimer.value) { clearInterval(pollTimer.value); pollTimer.value = null }
+  pollInFlight.value = false
 }
 
 export function stopMoveHeartbeat() {
@@ -2087,6 +2115,7 @@ export function useRobokit() {
     loading,
     navControlLoading,
     pollTimer,
+    pollInFlight,
     moveHeartbeatTimer,
     connectForm,
     robotInfo,

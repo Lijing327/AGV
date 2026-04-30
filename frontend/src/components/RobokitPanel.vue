@@ -745,7 +745,7 @@ watch(robokitUiMode, (mode) => {
   font-family: var(--font-mono);
 }
 .log-time { color: var(--text-muted); opacity: 0.5; min-width: 70px; flex-shrink: 0; }
-.log-msg { flex: 1; color: var(--text-muted); }
+.log-msg { flex: 1; color: var(--text-muted); white-space: pre-wrap; word-break: break-word; }
 .log-entry.error .log-msg { color: var(--red); }
 .log-entry.success .log-msg { color: var(--green); }
 
