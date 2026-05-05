@@ -6,21 +6,27 @@ import com.seer.sdk.rbk.RbkResultKind;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.Scanner;
+import java.util.function.Supplier;
+
 
 public class FangShangLoad {
-
 
     public static void main(String[] args) {
         // 0. 配置参数
         String robotIp = "192.168.25.211";
 
-        // 创建 Scanner 对象，用于读取 System.in (控制台输入)
-        Scanner scanner = new Scanner(System.in);
-
-        // 创建 RbkClient 对象
-        RbkClient rbkClient = new RbkClient(robotIp);
+        // 初始化变量
+        RbkClient rbkClient = null;
+        Scanner scanner = null;
+        String activeTaskId = null;
 
         try {
+            // 创建 Scanner 对象
+            scanner = new Scanner(System.in);
+
+            // 创建 RbkClient 对象
+            rbkClient = new RbkClient(robotIp);
+
             // ---------------------------------------------------------
             // 1. 抢占控制权
             // ---------------------------------------------------------
@@ -58,11 +64,11 @@ public class FangShangLoad {
             // ---------------------------------------------------------
             System.out.println("正在规划路径(1): 从当前位置 到 " + target1Point + "...");
 
-            // 生成任务 ID
-            String currentTaskId1 = "TASK_" + System.currentTimeMillis();
+            // 生成任务 ID 并记录
+            activeTaskId = "TASK_" + System.currentTimeMillis();
 
             // 使用抽取的方法发送导航请求
-            boolean navResult1 = sendNavigation(
+            boolean navResult1 = sendNavigationWithRetry(
                     rbkClient,
                     target1Point,
                     "ForkLoad",
@@ -72,20 +78,24 @@ public class FangShangLoad {
                     0.2,  // maxWspeed
                     true, // recognize
                     "plt/p2.plt", // recfile
-                    currentTaskId1
+                    activeTaskId
             );
 
             if (!navResult1) {
                 System.err.println("导航指令(1)发送失败");
                 return;
             }
-            System.out.println("导航指令(1)发送成功，任务 ID: " + currentTaskId1);
+            System.out.println("导航指令(1)发送成功，任务 ID: " + activeTaskId);
 
             // ---------------------------------------------------------
             // 4. 等待第一个任务完成 (使用 API 1020)
             // ---------------------------------------------------------
             System.out.println("等待到达取货点...");
-            boolean task1Success = waitForTaskCompletion(rbkClient, currentTaskId1, 300000);
+            boolean task1Success = waitForTaskCompletion(rbkClient, activeTaskId, 300000);
+
+            // 任务结束（无论成功失败），清空 ID，防止 finally 块误取消
+            activeTaskId = null;
+
             if (!task1Success) {
                 System.err.println("任务1执行失败或超时");
                 return;
@@ -97,11 +107,11 @@ public class FangShangLoad {
             // ---------------------------------------------------------
             System.out.println("正在规划路径(2): 从当前位置 到 LM2...");
 
-            // 生成任务 ID
-            String currentTaskId2 = "TASK_" + System.currentTimeMillis();
+            // 生成任务 ID 并记录
+            activeTaskId = "TASK_" + System.currentTimeMillis();
 
             // 使用抽取的方法发送导航请求
-            boolean navResult2 = sendNavigation(
+            boolean navResult2 = sendNavigationWithRetry(
                     rbkClient,
                     "LM2",
                     "ForkHeight",
@@ -111,20 +121,24 @@ public class FangShangLoad {
                     0.2,  // maxWspeed
                     false, // recognize
                     null, // recfile
-                    currentTaskId2
+                    activeTaskId
             );
 
             if (!navResult2) {
                 System.err.println("导航指令(2)发送失败");
                 return;
             }
-            System.out.println("导航指令(2)发送成功，任务 ID: " + currentTaskId2);
+            System.out.println("导航指令(2)发送成功，任务 ID: " + activeTaskId);
 
             // ---------------------------------------------------------
             // 6. 等待第二个任务完成 (使用 API 1020)
             // ---------------------------------------------------------
             System.out.println("等待到达立库前置点...");
-            boolean task2Success = waitForTaskCompletion(rbkClient, currentTaskId2, 300000);
+            boolean task2Success = waitForTaskCompletion(rbkClient, activeTaskId, 300000);
+
+            // 任务结束，清空 ID
+            activeTaskId = null;
+
             if (!task2Success) {
                 System.err.println("任务2执行失败或超时");
                 return;
@@ -136,11 +150,11 @@ public class FangShangLoad {
             // ---------------------------------------------------------
             System.out.println("正在规划路径(3): 从当前位置 到 AP1...");
 
-            // 生成任务 ID
-            String currentTaskId3 = "TASK_" + System.currentTimeMillis();
+            // 生成任务 ID 并记录
+            activeTaskId = "TASK_" + System.currentTimeMillis();
 
             // 使用抽取的方法发送导航请求
-            boolean navResult3 = sendNavigation(
+            boolean navResult3 = sendNavigationWithRetry(
                     rbkClient,
                     "AP1",
                     "ForkUnload",
@@ -150,20 +164,24 @@ public class FangShangLoad {
                     0.2,  // maxWspeed
                     false, // recognize
                     null, // recfile
-                    currentTaskId3
+                    activeTaskId
             );
 
             if (!navResult3) {
                 System.err.println("导航指令(3)发送失败");
                 return;
             }
-            System.out.println("导航指令(3)发送成功，任务 ID: " + currentTaskId3);
+            System.out.println("导航指令(3)发送成功，任务 ID: " + activeTaskId);
 
             // ---------------------------------------------------------
             // 8. 等待第三个任务完成 (使用 API 1020)
             // ---------------------------------------------------------
             System.out.println("等待叉车放货...");
-            boolean task3Success = waitForTaskCompletion(rbkClient, currentTaskId3, 300000);
+            boolean task3Success = waitForTaskCompletion(rbkClient, activeTaskId, 300000);
+
+            // 任务结束，清空 ID
+            activeTaskId = null;
+
             if (!task3Success) {
                 System.err.println("任务3执行失败或超时");
                 return;
@@ -175,11 +193,11 @@ public class FangShangLoad {
             // ---------------------------------------------------------
             System.out.println("正在规划路径(4): 从当前位置 到 LM2...");
 
-            // 生成任务 ID
-            String currentTaskId4 = "TASK_" + System.currentTimeMillis();
+            // 生成任务 ID 并记录
+            activeTaskId = "TASK_" + System.currentTimeMillis();
 
             // 使用抽取的方法发送导航请求
-            boolean navResult4 = sendNavigation(
+            boolean navResult4 = sendNavigationWithRetry(
                     rbkClient,
                     "LM2",
                     "ForkHeight",
@@ -189,20 +207,24 @@ public class FangShangLoad {
                     0.2,  // maxWspeed
                     false, // recognize
                     null, // recfile
-                    currentTaskId4
+                    activeTaskId
             );
 
             if (!navResult4) {
                 System.err.println("导航指令(4)发送失败");
                 return;
             }
-            System.out.println("导航指令(4)发送成功，任务 ID: " + currentTaskId4);
+            System.out.println("导航指令(4)发送成功，任务 ID: " + activeTaskId);
 
             // ---------------------------------------------------------
             // 10. 等待第四个任务完成 (使用 API 1020)
             // ---------------------------------------------------------
             System.out.println("等待回到前置点...");
-            boolean task4Success = waitForTaskCompletion(rbkClient, currentTaskId4, 300000);
+            boolean task4Success = waitForTaskCompletion(rbkClient, activeTaskId, 300000);
+
+            // 任务结束，清空 ID
+            activeTaskId = null;
+
             if (!task4Success) {
                 System.err.println("任务4执行失败或超时");
                 return;
@@ -210,13 +232,46 @@ public class FangShangLoad {
             System.out.println("已回到前置点，所有任务完成。");
 
         } catch (Exception e) {
+            System.err.println("程序运行发生异常: " + e.getMessage());
             e.printStackTrace();
         } finally {
             // ---------------------------------------------------------
-            // 11. 释放连接
+            // 11. 清理工作
             // ---------------------------------------------------------
-            rbkClient.dispose();
-            System.out.println("连接已释放。");
+
+            // 逻辑判断：如果当前有正在执行的任务，先尝试取消
+            if (activeTaskId != null) {
+                System.err.println("检测到程序异常退出，正在尝试取消当前任务: " + activeTaskId);
+                cancelTask(rbkClient, activeTaskId);
+                // 等待一小段时间，让取消指令生效
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+
+            // 释放连接 (增加非空判断和 try-catch)
+            if (rbkClient != null) {
+                try {
+                    rbkClient.dispose();
+                    System.out.println("连接已释放。");
+                } catch (Exception e) {
+                    System.err.println("释放连接时发生异常: " + e.getMessage());
+                }
+            }
+
+            // 关闭 Scanner
+            // 注意：关闭 Scanner 会关闭底层的 System.in。
+            // 如果此代码后续还需要从控制台读取输入，请移除下面的 close() 调用。
+            // 对于独立运行的 Demo 程序，关闭它是良好的习惯。
+            if (scanner != null) {
+                try {
+                    scanner.close();
+                } catch (Exception e) {
+                    System.err.println("关闭 Scanner 时发生异常: " + e.getMessage());
+                }
+            }
         }
     }
 
@@ -278,7 +333,7 @@ public class FangShangLoad {
     }
 
     /**
-     * 发送导航请求
+     * 发送导航请求（带重试机制）
      *
      * @param client RbkClient 客户端
      * @param targetId 目标点ID
@@ -292,7 +347,7 @@ public class FangShangLoad {
      * @param taskId 任务ID
      * @return 是否发送成功
      */
-    private static boolean sendNavigation(
+    private static boolean sendNavigationWithRetry(
             RbkClient client,
             String targetId,
             String operation,
@@ -304,44 +359,38 @@ public class FangShangLoad {
             String recfile,
             String taskId) {
 
-        try {
-            JSONObject navReqJson = new JSONObject();
-            navReqJson.put("id", targetId);           // 目标点
-            navReqJson.put("source_id", "SELF_POSITION"); // 起点：当前位置
-            navReqJson.put("task_id", taskId);        // 任务ID
-            navReqJson.put("operation", operation);   // 操作类型
-            navReqJson.put("end_height", endHeight);  // 结束高度
-            navReqJson.put("max_speed", maxSpeed);    // 最大速度
-            navReqJson.put("max_wspeed", maxWspeed);  // 最大角速度
+        // 构建导航请求
+        JSONObject navReqJson = new JSONObject();
+        navReqJson.put("id", targetId);
+        navReqJson.put("source_id", "SELF_POSITION");
+        navReqJson.put("task_id", taskId);
+        navReqJson.put("operation", operation);
+        navReqJson.put("end_height", endHeight);
+        navReqJson.put("max_speed", maxSpeed);
+        navReqJson.put("max_wspeed", maxWspeed);
 
-            // 可选参数
-            if (startHeight != null) {
-                navReqJson.put("start_height", startHeight);
-            }
-
-            if (recognize) {
-                navReqJson.put("recognize", recognize);
-                navReqJson.put("recfile", recfile);
-            }
-
-            String navReqStr = navReqJson.toString();
-            System.out.println("发送导航请求: " + navReqStr);
-
-            // 使用 API 3051
-            RbkResult navResult = client.request(3051, navReqStr, 5000);
-
-            if (!RbkResultKind.Ok.equals(navResult.getKind())) {
-                System.err.println("导航指令发送失败: " + navResult.getErrMsg());
-                return false;
-            }
-
-            return true;
-        } catch (Exception e) {
-            System.err.println("发送导航请求时发生异常: " + e.getMessage());
-            e.printStackTrace();
-            return false;
+        // 可选参数
+        if (startHeight != null) {
+            navReqJson.put("start_height", startHeight);
         }
+
+        if (recognize) {
+            navReqJson.put("recognize", recognize);
+            navReqJson.put("recfile", recfile);
+        }
+
+        String navReqStr = navReqJson.toString();
+        String operationName = "导航到 " + targetId;
+
+        // 使用重试机制发送导航请求
+        return executeWithRetry(
+                () -> client.request(3051, navReqStr, 5000),
+                3, // 最大重试次数
+                500, // 初始延迟500毫秒
+                operationName
+        );
     }
+
 
     /**
      * 辅助方法：轮询等待任务完成
@@ -442,5 +491,59 @@ public class FangShangLoad {
             System.err.println("取消任务时发生异常: " + e.getMessage() + "，TaskID: " + taskId);
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 通用重试工具方法
+     * 使用指数退避策略进行重试
+     *
+     * @param operation      要执行的操作，返回 RbkResult
+     * @param maxRetries     最大重试次数
+     * @param initialDelayMs 初始延迟时间（毫秒）
+     * @param operationName  操作名称（用于日志打印）
+     * @return 操作成功返回 true，否则返回 false
+     */
+    private static boolean executeWithRetry(Supplier<RbkResult> operation, int maxRetries, long initialDelayMs, String operationName) {
+        int retryCount = 0;
+        long currentDelay = initialDelayMs;
+
+        while (retryCount <= maxRetries) {
+            try {
+                RbkResult result = operation.get();
+
+                if (RbkResultKind.Ok.equals(result.getKind())) {
+                    if (retryCount > 0) {
+                        System.out.println(operationName + " 重试成功 (第 " + retryCount + " 次重试)");
+                    }
+                    return true;
+                } else {
+                    System.err.println(operationName + " 失败: " + result.getErrMsg());
+                }
+            } catch (Exception e) {
+                System.err.println(operationName + " 发生异常: " + e.getMessage());
+            }
+
+            // 如果这是最后一次尝试，不再等待
+            if (retryCount == maxRetries) {
+                break;
+            }
+
+            retryCount++;
+            System.err.println(operationName + " 失败，" + currentDelay + "ms 后进行第 " + retryCount + " 次重试...");
+
+            try {
+                Thread.sleep(currentDelay);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                System.err.println("重试等待被中断");
+                return false;
+            }
+
+            // 指数退避：每次延迟时间翻倍，最大不超过 5 秒
+            currentDelay = Math.min(currentDelay * 2, 5000);
+        }
+
+        System.err.println(operationName + " 达到最大重试次数 (" + maxRetries + ")，操作失败。");
+        return false;
     }
 }

@@ -1,6 +1,6 @@
 /**
- * 构建后检查：避免把仍指向 :8000 的旧配置打进 dist 却误部署。
- * 若你们合法使用 8000，可临时跳过：npm run build -- --skipVerify（需改 package 脚本）或直接 vite build。
+ * 构建后检查：避免把旧域名的 8000 端口打进 dist 却误部署。
+ * 当前项目允许使用内网地址（如 192.168.24.216:8000/api）。
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -16,7 +16,6 @@ if (!fs.existsSync(assetsDir)) {
 
 const patterns = [
   { re: /yonghongjituan\.com:8000/i, msg: '仍包含 yonghongjituan.com:8000' },
-  { re: /:8000\/api/, msg: '仍包含 :8000/api（应使用 .env.production 中的 6715 或同源反代）' },
 ]
 
 let failed = false
@@ -34,8 +33,8 @@ for (const name of fs.readdirSync(assetsDir)) {
 }
 
 if (failed) {
-  console.error('\n请确认：1) frontend/.env.production 已保存  2) 在项目根执行 npm run build  3) 上传的是整个 dist 且清理/刷新线上缓存')
+  console.error('\n请确认：1) frontend/.env.production 已保存  2) 在 frontend 目录执行 npm run build  3) 上传的是整个 dist 且清理/刷新线上缓存')
   process.exit(1)
 }
 
-console.log('verify-dist-api: 通过（dist 内未发现 yonghongjituan.com:8000 / :8000/api）')
+console.log('verify-dist-api: 通过（dist 内未发现 yonghongjituan.com:8000）')

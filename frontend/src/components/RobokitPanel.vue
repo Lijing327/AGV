@@ -57,17 +57,31 @@
       </template>
     </div>
 
-    <!-- 主界面（未连接时亦可浏览，为离线配置） -->
-    <div class="group-tabs" v-if="robokitUiMode === 'debug'">
+    <!-- 主界面（未连接时亦可浏览，为离线配置）；调试模式主 Tab 右侧可快速抢占控制权 -->
+    <div class="group-tabs-row" v-if="robokitUiMode === 'debug'">
+      <div class="group-tabs" role="tablist">
+        <button
+          v-for="g in groups"
+          :key="g.id"
+          type="button"
+          role="tab"
+          class="group-tab"
+          :class="{ active: activeGroup === g.id }"
+          :aria-selected="activeGroup === g.id"
+          @click="activeGroup = g.id"
+        >
+          <span class="tab-icon" v-html="g.icon"></span>
+          <span class="tab-label">{{ g.name }}</span>
+        </button>
+      </div>
       <button
-        v-for="g in groups"
-        :key="g.id"
-        class="group-tab"
-        :class="{ active: activeGroup === g.id }"
-        @click="activeGroup = g.id"
+        type="button"
+        class="btn btn-ghost-sm debug-take-control-btn"
+        title="API 4005 抢占控制权；昵称同「控制」页"
+        :disabled="loading"
+        @click="handleTakeControl"
       >
-        <span class="tab-icon" v-html="g.icon"></span>
-        <span class="tab-label">{{ g.name }}</span>
+        抢占控制权
       </button>
     </div>
 
@@ -321,11 +335,24 @@ watch(robokitUiMode, (mode) => {
   flex-shrink: 0;
 }
 
-/* 分组Tab */
-.group-tabs {
-  display: flex; gap: 2px; padding: 8px 12px;
+/* 分组Tab（调试模式：与「抢占控制权」同一行） */
+.group-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+}
+.group-tabs {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.debug-take-control-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .group-tab {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;

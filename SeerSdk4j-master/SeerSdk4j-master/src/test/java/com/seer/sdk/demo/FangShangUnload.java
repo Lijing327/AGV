@@ -24,17 +24,17 @@ public class FangShangUnload {
 
         try {
             // ---------------------------------------------------------
-            // 1. 抢占控制权
-            // ---------------------------------------------------------
-            System.out.println("正在尝试抢占控制权...");
-            String loginReq = "{\"nick_name\":\"operator\"}";
-            RbkResult loginResult = rbkClient.request(4005, loginReq, 5000);
-
-            if (!RbkResultKind.Ok.equals(loginResult.getKind())) {
-                System.err.println("抢占控制权失败: " + loginResult.getErrMsg());
-                return;
-            }
-            System.out.println("抢占控制权成功");
+//            // 1. 抢占控制权
+//            // ---------------------------------------------------------
+//            System.out.println("正在尝试抢占控制权...");
+//            String loginReq = "{\"nick_name\":\"operator\"}";
+//            RbkResult loginResult = rbkClient.request(4005, loginReq, 5000);
+//
+//            if (!RbkResultKind.Ok.equals(loginResult.getKind())) {
+//                System.err.println("抢占控制权失败: " + loginResult.getErrMsg());
+//                return;
+//            }
+//            System.out.println("抢占控制权成功");
 
             // ---------------------------------------------------------
             // 2. 第一次路径导航 (API 3051) -> 去前置点

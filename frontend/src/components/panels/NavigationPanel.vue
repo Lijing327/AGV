@@ -1,18 +1,31 @@
 <template>
 <div v-if="activeGroup === 'navigation'" class="group-content nav-panel-root">
-          <div class="nav-subtabs" role="tablist">
-            <button
-              v-for="t in navSubTabs"
-              :key="t.id"
-              type="button"
-              role="tab"
-              class="nav-subtab"
-              :class="{ active: navSubTab === t.id }"
-              :aria-selected="navSubTab === t.id"
-              @click="navSubTab = t.id"
-            >
-              {{ t.label }}
-            </button>
+          <div class="nav-subtabs-row">
+            <div class="nav-subtabs" role="tablist">
+              <button
+                v-for="t in navSubTabs"
+                :key="t.id"
+                type="button"
+                role="tab"
+                class="nav-subtab"
+                :class="{ active: navSubTab === t.id }"
+                :aria-selected="navSubTab === t.id"
+                @click="navSubTab = t.id"
+              >
+                {{ t.label }}
+              </button>
+            </div>
+            <div class="nav-subtabs-actions">
+              <button
+                type="button"
+                class="btn btn-ghost-sm nav-take-control-btn"
+                title="API 4005 抢占控制权。默认昵称 agv-web；调试模式可在「控制」页修改"
+                @click="handleTakeControl"
+                :disabled="loading"
+              >
+                抢占控制权
+              </button>
+            </div>
           </div>
           
           <div class="card priority-card" v-show="navSubTab === 'carry'">
@@ -753,10 +766,12 @@ watch(
   color: var(--text-secondary, #aaa);
   margin: 10px 0 6px;
 }
-.nav-subtabs {
+.nav-subtabs-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
   padding: 2px 0 10px;
   margin-bottom: 2px;
   border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
@@ -765,6 +780,19 @@ watch(
   z-index: 2;
   background: var(--bg-card, rgba(15, 18, 28, 0.92));
   backdrop-filter: blur(8px);
+}
+.nav-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.nav-subtabs-actions {
+  flex-shrink: 0;
+}
+.nav-take-control-btn {
+  white-space: nowrap;
 }
 .nav-subtab {
   border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
