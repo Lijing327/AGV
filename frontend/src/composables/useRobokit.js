@@ -1353,21 +1353,27 @@ export function formatRobokitError(msg) {
 
 export async function handleConnect() {
   loading.value = true
-  log('正在连接机器人…', false, false)
+  log('正在连接机器人（Python + Java）…', false, false)
   try {
     const host = String(connectForm.value.host || '').trim()
     const portRaw = connectForm.value.port
     const port =
       portRaw === '' || portRaw == null ? null : Number(portRaw)
-    const result = await api.robokitConnect(
+    const normalizedPort = Number.isFinite(port) ? port : null
+    const pyResult = await api.robokitConnect(
       host,
-      Number.isFinite(port) ? port : null
+      normalizedPort
     )
-    if (result?.success) {
+    if (pyResult?.success) {
+      log('Python 服务已连接，正在连接 Java 服务…', false, false)
+      const javaResult = await api.robokitJavaConnect(host, normalizedPort)
+      if (javaResult?.success === false) {
+        throw new Error(javaResult?.message || 'Java 服务连接失败（success=false）')
+      }
       connectionStatus.value = { connected: true, host }
-      log(result.message || '连接成功', false, true)
-      if (result.push_listener === false) {
-        log(result.message || '推送端口未连通', false, false)
+      log(javaResult?.message || pyResult.message || 'Python + Java 服务连接成功', false, true)
+      if (pyResult.push_listener === false) {
+        log(pyResult.message || '推送端口未连通', false, false)
       }
       startPoll()
 
@@ -1375,9 +1381,10 @@ export async function handleConnect() {
         log('连接后刷新状态失败: ' + (err.message || err), true)
       })
     } else {
-      log(result?.message || '连接失败（success=false）', true)
+      log(pyResult?.message || 'Python 服务连接失败（success=false）', true)
     }
   } catch (e) {
+    connectionStatus.value = { connected: false, host: '' }
     log('连接错误: ' + (e?.message || e), true)
   } finally {
     loading.value = false
