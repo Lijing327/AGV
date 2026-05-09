@@ -64,10 +64,10 @@ class RobokitClient:
         self._push_writer: asyncio.StreamWriter | None = None
         self._push_position_callback: Optional[Callable[..., Any]] = None
 
-    async def _connect_port(self, port: int) -> bool:
+    async def _connect_port(self, port: int) -> tuple[bool, str | None]:
         """在已持有 _io_lock 时建立指定端口 TCP 连接。"""
         if port in self._connections:
-            return True
+            return True, None
         try:
             reader, writer = await asyncio.wait_for(
                 asyncio.open_connection(self.host, port),
@@ -75,12 +75,12 @@ class RobokitClient:
             )
             self._connections[port] = reader
             self._writers[port] = writer
-            return True
+            return True, None
         except Exception as e:
             print(f"连接失败 {self.host}:{port} - {e}")
-            return False
+            return False, str(e)
 
-    async def connect(self, port: int | None = None) -> bool:
+    async def connect(self, port: int | None = None) -> tuple[bool, str | None]:
         """
         连接到机器人
 
@@ -88,7 +88,7 @@ class RobokitClient:
             port: 端口号，None使用默认端口
 
         Returns:
-            是否连接成功
+            (是否连接成功, 失败时的错误信息)
         """
         port = port or self.default_port
         async with self._io_lock:
@@ -146,9 +146,12 @@ class RobokitClient:
         """
         async with self._io_lock:
             if port not in self._connections or port not in self._writers:
-                success = await self._connect_port(port)
+                success, cerr = await self._connect_port(port)
                 if not success or port not in self._connections or port not in self._writers:
-                    raise ConnectionError(f"无法连接到 {self.host}:{port}")
+                    msg = f"无法连接到 {self.host}:{port}"
+                    if cerr:
+                        msg = f"{msg}: {cerr}"
+                    raise ConnectionError(msg)
             reader = self._connections[port]
             writer = self._writers[port]
 
@@ -458,7 +461,9 @@ async def robokit_client(host: str, port: int = PORT_STATUS):
     """
     client = RobokitClient(host, port)
     try:
-        await client.connect()
+        ok, err = await client.connect()
+        if not ok:
+            raise ConnectionError(err or f"无法连接 {host}:{port}")
         yield client
     finally:
         await client.close()

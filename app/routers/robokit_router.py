@@ -16,6 +16,7 @@ from app.deps import (
     get_robot_push_position,
     clear_robot_push_position,
 )
+from app.java_proxy import forward_java_post
 from app.services.robokit_api import (
     RobokitAPI,
     RobokitError,
@@ -266,7 +267,7 @@ async def connect(
     clear_robot_push_position()
     client = get_robokit_client(host)
     try:
-        success = await client.connect(port)
+        success, tcp_err = await client.connect(port)
         if success:
             # 启动机器人推送监听（端口 19301），用于地图实时位置
             push_ok = await client.start_push_listener(on_position=_on_robot_push)
@@ -277,10 +278,34 @@ async def connect(
                 "message": "控制端口已连接，推送端口 19301 未连通（地图实时位姿可能不更新）",
                 "push_listener": False,
             }
-        else:
-            return {"success": False, "message": "连接失败"}
+        eff = port if port is not None else client.default_port
+        detail = f"无法连接机器人 TCP {host}:{eff}"
+        if tcp_err:
+            detail = f"{detail} — {tcp_err}"
+        raise HTTPException(status_code=503, detail=detail)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== Java 编排服务代理（同源访问，避免浏览器直连 8001 跨域）====================
+
+
+@router.post("/java-server/connect")
+async def java_server_connect(body: dict = Body(default_factory=dict)):
+    """转发到 AgvJavaServer POST /api/robokit/connect"""
+    return await forward_java_post("connect", body)
+
+
+@router.post("/java-server/workflow/fangshang/java/load")
+async def java_server_fangshang_java_load(body: dict = Body(default_factory=dict)):
+    return await forward_java_post("workflow/fangshang/java/load", body)
+
+
+@router.post("/java-server/workflow/fangshang/java/unload")
+async def java_server_fangshang_java_unload(body: dict = Body(default_factory=dict)):
+    return await forward_java_post("workflow/fangshang/java/unload", body)
+
 
 @router.post("/disconnect")
 async def disconnect():

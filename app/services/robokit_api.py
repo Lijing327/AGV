@@ -477,14 +477,10 @@ class RobokitAPI:
 
     async def connect(self) -> bool:
         """连接到机器人所有API端口"""
-        success = await self._client.connect()
+        success, _ = await self._client.connect()
         if success:
-            # 连接其他端口
-            for port in [PORT_CONTROL, PORT_NAVIGATION, PORT_CONFIG, PORT_OTHER]:
-                try:
-                    await self._client.connect(port)
-                except Exception:
-                    pass  # 某些端口可能不可用
+            for p in [PORT_CONTROL, PORT_NAVIGATION, PORT_CONFIG, PORT_OTHER]:
+                await self._client.connect(p)  # 各端口独立，失败仅影响后续 API 调用
         return success
 
     async def close(self) -> None:

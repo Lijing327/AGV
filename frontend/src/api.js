@@ -6,6 +6,8 @@
  *   - 若设置 VITE_API_BASE（可为 https://host:端口/api 或相对路径 /AGV/api），优先使用
  *   - 未设置：与静态资源同源，由 import.meta.env.BASE_URL 推出（如 base=/AGV/ → /AGV/api），
  *     便于 Nginx 把 /AGV/api 反代到后端，避免跨域与混合内容
+ * - Java 编排（connect / 方上 java 流程）：默认经 Python 代理（VITE_JAVA_VIA_PYTHON），
+ *   由服务端访问 AGV_JAVA_API_BASE，避免浏览器直连 8001 跨域或被防火墙拦截。
  *
  * 环境变量说明见 frontend/.env.example、.env.production
  */
@@ -31,14 +33,24 @@ function getApiBase() {
 }
 const API_BASE = getApiBase()
 
-function getJavaApiBase() {
-  const fromEnv = import.meta.env.VITE_JAVA_API_BASE
-  if (fromEnv !== undefined && String(fromEnv).trim() !== '') {
-    return String(fromEnv).trim().replace(/\/+$/, '')
+/** AgvJavaServer 上 robokit 子路径，如 connect、workflow/fangshang/java/load */
+function javaApiUrl(relPath) {
+  const v = String(import.meta.env.VITE_JAVA_VIA_PYTHON || '').toLowerCase()
+  const viaPy = v === '1' || v === 'true' || v === 'yes'
+  const path = String(relPath || '').replace(/^\/+/, '')
+  if (viaPy) {
+    const root = String(getApiBase()).replace(/\/+$/, '')
+    return `${root}/robokit/java-server/${path}`
   }
-  return API_BASE
+  const fromEnv = import.meta.env.VITE_JAVA_API_BASE
+  let base
+  if (fromEnv !== undefined && String(fromEnv).trim() !== '') {
+    base = String(fromEnv).trim().replace(/\/+$/, '')
+  } else {
+    base = String(getApiBase()).replace(/\/+$/, '')
+  }
+  return `${base}/robokit/${path}`
 }
-const JAVA_API_BASE = getJavaApiBase()
 
 export async function fetchMap() {
   const r = await fetch(`${API_BASE}/map`)
@@ -558,7 +570,7 @@ export async function robokitFangShangUnloadWorkflow(payload) {
 }
 
 export async function robokitFangShangJavaLoadWorkflow(payload) {
-  const r = await fetch(`${JAVA_API_BASE}/robokit/workflow/fangshang/java/load`, {
+  const r = await fetch(javaApiUrl('workflow/fangshang/java/load'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload || {}),
@@ -569,7 +581,7 @@ export async function robokitFangShangJavaLoadWorkflow(payload) {
 }
 
 export async function robokitFangShangJavaUnloadWorkflow(payload) {
-  const r = await fetch(`${JAVA_API_BASE}/robokit/workflow/fangshang/java/unload`, {
+  const r = await fetch(javaApiUrl('workflow/fangshang/java/unload'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload || {}),
@@ -584,7 +596,7 @@ export async function robokitJavaConnect(host, port = null) {
     host: String(host || '').trim(),
     port: port == null || port === '' ? undefined : Number(port),
   }
-  const r = await fetch(`${JAVA_API_BASE}/robokit/connect`, {
+  const r = await fetch(javaApiUrl('connect'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

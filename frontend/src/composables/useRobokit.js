@@ -1353,7 +1353,7 @@ export function formatRobokitError(msg) {
 
 export async function handleConnect() {
   loading.value = true
-  log('正在连接机器人（Python + Java）…', false, false)
+  log('正在连接机器人（Python 控制通道）…', false, false)
   try {
     const host = String(connectForm.value.host || '').trim()
     const portRaw = connectForm.value.port
@@ -1365,13 +1365,9 @@ export async function handleConnect() {
       normalizedPort
     )
     if (pyResult?.success) {
-      log('Python 服务已连接，正在连接 Java 服务…', false, false)
-      const javaResult = await api.robokitJavaConnect(host, normalizedPort)
-      if (javaResult?.success === false) {
-        throw new Error(javaResult?.message || 'Java 服务连接失败（success=false）')
-      }
       connectionStatus.value = { connected: true, host }
-      log(javaResult?.message || pyResult.message || 'Python + Java 服务连接成功', false, true)
+      log(pyResult.message || 'Python 服务连接成功', false, true)
+      log('方上 Java 取/送货仅在点击对应按钮时连接 Java 编排服务。', false, false)
       if (pyResult.push_listener === false) {
         log(pyResult.message || '推送端口未连通', false, false)
       }
